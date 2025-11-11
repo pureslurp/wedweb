@@ -13,52 +13,121 @@ if (typeof window.supabase !== 'undefined') {
 // Store current guest data
 let currentGuest = null;
 
+// Helper function to parse full name into first and last name
+function parseFullName(fullName) {
+    const nameParts = fullName.trim().split(/\s+/); // Split on whitespace
+    
+    if (nameParts.length === 1) {
+        // Only one name provided
+        return { firstName: nameParts[0], lastName: '' };
+    } else if (nameParts.length === 2) {
+        // First and last name
+        return { firstName: nameParts[0], lastName: nameParts[1] };
+    } else {
+        // Multiple names - assume first word is first name, rest is last name
+        const firstName = nameParts[0];
+        const lastName = nameParts.slice(1).join(' ');
+        return { firstName, lastName };
+    }
+}
+
+// Smart lookup function that tries multiple strategies
+async function lookupGuest(fullName) {
+    const { firstName, lastName } = parseFullName(fullName);
+    
+    // Strategy 1: Try exact match with parsed first and last name
+    let { data, error } = await supabase
+        .from('guests')
+        .select('*')
+        .ilike('first_name', firstName)
+        .ilike('last_name', lastName);
+    
+    if (data && data.length > 0) {
+        return data[0]; // Return first match
+    }
+    
+    // Strategy 2: If no exact match and there's a last name, try partial matches
+    if (lastName) {
+        // Try matching where first name starts with the input
+        const { data: data2 } = await supabase
+            .from('guests')
+            .select('*')
+            .ilike('first_name', `${firstName}%`)
+            .ilike('last_name', `${lastName}%`);
+        
+        if (data2 && data2.length > 0) {
+            return data2[0];
+        }
+    }
+    
+    // Strategy 3: Try searching across the full name field (if people typed it differently)
+    // Search for first name in either field
+    const { data: data3 } = await supabase
+        .from('guests')
+        .select('*')
+        .or(`first_name.ilike.%${firstName}%,last_name.ilike.%${firstName}%`);
+    
+    if (data3 && data3.length > 0) {
+        // Filter to see if any match includes the last name too
+        const match = data3.find(guest => 
+            guest.last_name.toLowerCase().includes(lastName.toLowerCase())
+        );
+        if (match) return match;
+        
+        // If only one result, return it
+        if (data3.length === 1) return data3[0];
+    }
+    
+    // No match found
+    return null;
+}
+
 // Step 1: Name Lookup Form Handler
 document.getElementById('nameLookupForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
-    const firstName = document.getElementById('firstName').value.trim();
-    const lastName = document.getElementById('lastName').value.trim();
+    const fullName = document.getElementById('fullName').value.trim();
     const errorMessage = document.getElementById('errorMessage');
     
     // Clear previous error
     errorMessage.textContent = '';
     errorMessage.style.display = 'none';
     
+    if (!fullName) {
+        errorMessage.textContent = 'Please enter your full name.';
+        errorMessage.style.display = 'block';
+        return;
+    }
+    
     try {
-        // Query Supabase for guest
-        const { data, error } = await supabase
-            .from('guests')
-            .select('*')
-            .ilike('first_name', firstName)
-            .ilike('last_name', lastName)
-            .single();
+        // Use smart lookup function
+        const guest = await lookupGuest(fullName);
         
-        if (error || !data) {
+        if (!guest) {
             errorMessage.textContent = 'Guest not found. Please check your name and try again, or contact the couple for assistance.';
             errorMessage.style.display = 'block';
             return;
         }
         
         // Store guest data
-        currentGuest = data;
+        currentGuest = guest;
         
         // Populate guest info display
-        document.getElementById('guestGreeting').textContent = `Welcome, ${data.first_name} ${data.last_name}!`;
-        document.getElementById('displayEmail').textContent = data.email || 'Not provided';
-        document.getElementById('displayPhone').textContent = data.phone || 'Not provided';
-        document.getElementById('displayAddress').textContent = data.address || 'Not provided';
+        document.getElementById('guestGreeting').textContent = `Welcome, ${guest.first_name} ${guest.last_name}!`;
+        document.getElementById('displayEmail').textContent = guest.email || 'Not provided';
+        document.getElementById('displayPhone').textContent = guest.phone || 'Not provided';
+        document.getElementById('displayAddress').textContent = guest.address || 'Not provided';
         
         // If guest has already RSVP'd, pre-fill the form
-        if (data.rsvp) {
-            document.getElementById('rsvpResponse').value = data.rsvp;
-            if (data.rsvp === 'yes') {
+        if (guest.rsvp) {
+            document.getElementById('rsvpResponse').value = guest.rsvp;
+            if (guest.rsvp === 'yes') {
                 showAttendingFields();
-                if (data.meal_choice) document.getElementById('mealChoice').value = data.meal_choice;
+                if (guest.meal_choice) document.getElementById('mealChoice').value = guest.meal_choice;
             }
         }
-        if (data.song_request) document.getElementById('songRequest').value = data.song_request;
-        if (data.dietary_notes) document.getElementById('dietaryNotes').value = data.dietary_notes;
+        if (guest.song_request) document.getElementById('songRequest').value = guest.song_request;
+        if (guest.dietary_notes) document.getElementById('dietaryNotes').value = guest.dietary_notes;
         
         // Show RSVP form, hide name lookup
         document.getElementById('nameLookupSection').style.display = 'none';
