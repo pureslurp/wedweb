@@ -206,3 +206,132 @@ body {
     }
 }
 
+/* RSVP Page Styles */
+.rsvp-section {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 4rem 2rem;
+    min-height: calc(100vh - 300px);
+}
+
+.rsvp-container {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    padding: 3rem;
+    animation: fadeIn 0.8s ease-in;
+}
+
+.rsvp-content {
+    text-align: center;
+}
+
+.rsvp-title {
+    font-size: 3rem;
+    font-weight: 400;
+    color: #4a4a4a;
+    margin-bottom: 1rem;
+    font-family: 'Georgia', serif;
+    letter-spacing: 2px;
+}
+
+.rsvp-subtitle {
+    font-size: 1.2rem;
+    color: #8b7355;
+    margin-bottom: 2.5rem;
+    font-style: italic;
+}
+
+.rsvp-form {
+    text-align: left;
+}
+
+.form-group {
+    margin-bottom: 2rem;
+}
+
+.form-label {
+    display: block;
+    font-size: 1rem;
+    color: #5a5a5a;
+    margin-bottom: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+.form-input {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1rem;
+    border: 2px solid #e0d5c7;
+    border-radius: 8px;
+    font-family: 'Georgia', serif;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    background-color: #faf9f7;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #8b7355;
+    box-shadow: 0 0 0 3px rgba(139, 115, 85, 0.1);
+}
+
+.form-input::placeholder {
+    color: #b0a89f;
+}
+
+.submit-btn {
+    width: 100%;
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #fff;
+    background-color: #8b7355;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    letter-spacing: 1px;
+    font-family: 'Georgia', serif;
+    margin-top: 1rem;
+}
+
+.submit-btn:hover {
+    background-color: #6f5a43;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 115, 85, 0.3);
+}
+
+.submit-btn:active {
+    transform: translateY(0);
+}
+
+/* RSVP Page Responsive */
+@media (max-width: 768px) {
+    .rsvp-container {
+        padding: 2rem;
+    }
+
+    .rsvp-title {
+        font-size: 2.5rem;
+    }
+
+    .rsvp-subtitle {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .rsvp-section {
+        padding: 2rem 1rem;
+    }
+
+    .rsvp-container {
+        padding: 1.5rem;
+    }
+
+    .rsvp-title {
+        font-size: 2rem;
+    }
+}
+

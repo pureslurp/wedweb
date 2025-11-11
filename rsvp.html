@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSVP | Savannah & Sean</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation Header -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <ul class="nav-menu">
+                <li class="nav-item"><a href="index.html" class="nav-link">Home</a></li>
+                <li class="nav-item"><a href="#" class="nav-link">Our Story</a></li>
+                <li class="nav-item"><a href="#" class="nav-link">Photos</a></li>
+                <li class="nav-item"><a href="#" class="nav-link">Wedding Party</a></li>
+                <li class="nav-item"><a href="#" class="nav-link">Q+A</a></li>
+                <li class="nav-item"><a href="#" class="nav-link">Travel</a></li>
+                <li class="nav-item"><a href="#" class="nav-link">Registry</a></li>
+                <li class="nav-item"><a href="rsvp.html" class="nav-link active">RSVP</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- RSVP Section -->
+    <main class="rsvp-section">
+        <div class="rsvp-container">
+            <div class="rsvp-content">
+                <h1 class="rsvp-title">RSVP</h1>
+                <p class="rsvp-subtitle">Please enter your name to begin</p>
+                
+                <form class="rsvp-form" id="rsvpForm">
+                    <div class="form-group">
+                        <label for="guestName" class="form-label">Full Name</label>
+                        <input 
+                            type="text" 
+                            id="guestName" 
+                            name="guestName" 
+                            class="form-input" 
+                            placeholder="Enter your full name"
+                            required
+                        >
+                    </div>
+                    
+                    <button type="submit" class="submit-btn">Continue</button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2025 Savannah & Sean. All rights reserved.</p>
+    </footer>
+
+    <script src="rsvp.js"></script>
+</body>
+</html>
+
