@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RSVP | Savannah & Sean</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Supabase Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <!-- Navigation Header -->
@@ -26,25 +28,112 @@
     <!-- RSVP Section -->
     <main class="rsvp-section">
         <div class="rsvp-container">
-            <div class="rsvp-content">
+            <!-- Step 1: Name Lookup -->
+            <div class="rsvp-content" id="nameLookupSection">
                 <h1 class="rsvp-title">RSVP</h1>
                 <p class="rsvp-subtitle">Please enter your name to begin</p>
                 
-                <form class="rsvp-form" id="rsvpForm">
+                <form class="rsvp-form" id="nameLookupForm">
                     <div class="form-group">
-                        <label for="guestName" class="form-label">Full Name</label>
+                        <label for="firstName" class="form-label">First Name</label>
                         <input 
                             type="text" 
-                            id="guestName" 
-                            name="guestName" 
+                            id="firstName" 
+                            name="firstName" 
                             class="form-input" 
-                            placeholder="Enter your full name"
+                            placeholder="Enter your first name"
+                            required
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="lastName" class="form-label">Last Name</label>
+                        <input 
+                            type="text" 
+                            id="lastName" 
+                            name="lastName" 
+                            class="form-input" 
+                            placeholder="Enter your last name"
                             required
                         >
                     </div>
                     
                     <button type="submit" class="submit-btn">Continue</button>
                 </form>
+                
+                <div id="errorMessage" class="error-message"></div>
+            </div>
+
+            <!-- Step 2: RSVP Form -->
+            <div class="rsvp-content" id="rsvpFormSection" style="display: none;">
+                <h1 class="rsvp-title">Complete Your RSVP</h1>
+                <p class="rsvp-subtitle" id="guestGreeting"></p>
+                
+                <form class="rsvp-form" id="rsvpDetailsForm">
+                    <!-- Guest Info Display -->
+                    <div class="guest-info">
+                        <p><strong>Email:</strong> <span id="displayEmail"></span></p>
+                        <p><strong>Phone:</strong> <span id="displayPhone"></span></p>
+                        <p><strong>Address:</strong> <span id="displayAddress"></span></p>
+                    </div>
+
+                    <!-- RSVP Response -->
+                    <div class="form-group">
+                        <label for="rsvpResponse" class="form-label">Will you be attending?</label>
+                        <select id="rsvpResponse" name="rsvpResponse" class="form-input" required>
+                            <option value="">Please select...</option>
+                            <option value="yes">Yes, I will attend</option>
+                            <option value="no">No, I cannot attend</option>
+                        </select>
+                    </div>
+
+                    <!-- Meal Choice (shown only if attending) -->
+                    <div class="form-group" id="mealChoiceGroup" style="display: none;">
+                        <label for="mealChoice" class="form-label">Meal Choice</label>
+                        <select id="mealChoice" name="mealChoice" class="form-input">
+                            <option value="">Please select...</option>
+                            <option value="chicken">Chicken</option>
+                            <option value="beef">Beef</option>
+                            <option value="fish">Fish</option>
+                            <option value="vegetarian">Vegetarian</option>
+                        </select>
+                    </div>
+
+                    <!-- Song Request -->
+                    <div class="form-group" id="songRequestGroup" style="display: none;">
+                        <label for="songRequest" class="form-label">Song Request (Optional)</label>
+                        <input 
+                            type="text" 
+                            id="songRequest" 
+                            name="songRequest" 
+                            class="form-input" 
+                            placeholder="Artist - Song Title"
+                        >
+                    </div>
+
+                    <!-- Dietary Notes -->
+                    <div class="form-group" id="dietaryNotesGroup" style="display: none;">
+                        <label for="dietaryNotes" class="form-label">Dietary Restrictions/Notes (Optional)</label>
+                        <textarea 
+                            id="dietaryNotes" 
+                            name="dietaryNotes" 
+                            class="form-input form-textarea" 
+                            rows="3"
+                            placeholder="Please let us know of any allergies or dietary restrictions"
+                        ></textarea>
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="submitRsvpBtn">Submit RSVP</button>
+                    <button type="button" class="back-btn" id="backBtn">Go Back</button>
+                </form>
+            </div>
+
+            <!-- Success Message -->
+            <div class="rsvp-content" id="successSection" style="display: none;">
+                <h1 class="rsvp-title">Thank You!</h1>
+                <p class="rsvp-subtitle">Your RSVP has been successfully submitted.</p>
+                <p class="success-message">We look forward to celebrating with you!</p>
+                <button type="button" class="submit-btn" onclick="window.location.href='index.html'">Return to Home</button>
             </div>
         </div>
     </main>
