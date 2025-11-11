@@ -20,6 +20,7 @@ The table will include these columns:
 - `email` (Text)
 - `address` (Text)
 - `phone` (Text)
+- `plus_one_id` (UUID, Foreign Key) - Links to another guest's ID for plus ones
 - `rsvp` (Text) - 'yes' or 'no'
 - `meal_choice` (Text) - 'chicken', 'beef', 'fish', or 'vegetarian'
 - `song_request` (Text)
@@ -79,11 +80,25 @@ You can add guests through:
 
 ### Example SQL Insert:
 ```sql
+-- Insert guests first
 INSERT INTO guests (first_name, last_name, email, address, phone)
 VALUES 
   ('John', 'Doe', 'john@example.com', '123 Main St, City, ST 12345', '555-0100'),
   ('Jane', 'Smith', 'jane@example.com', '456 Oak Ave, City, ST 12345', '555-0101');
+
+-- Then link plus ones (after getting their IDs)
+UPDATE guests SET plus_one_id = (SELECT id FROM guests WHERE first_name = 'Jane' AND last_name = 'Smith')
+WHERE first_name = 'John' AND last_name = 'Doe';
+
+UPDATE guests SET plus_one_id = (SELECT id FROM guests WHERE first_name = 'John' AND last_name = 'Doe')
+WHERE first_name = 'Jane' AND last_name = 'Smith';
 ```
+
+### Plus One Feature:
+When a guest searches for their name, both they and their plus one will appear in the results. Each person RSVPs individually, but the system shows they are linked. To set up plus ones:
+1. Add all guests to the database first
+2. Use UPDATE queries to link guests by setting their `plus_one_id` to reference each other
+3. The relationship is bidirectional - if Jane is John's plus one, John should be Jane's plus one
 
 ## Step 7: Test Your RSVP System
 

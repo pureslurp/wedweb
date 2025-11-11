@@ -411,3 +411,70 @@ select.form-input {
     padding-right: 3rem;
 }
 
+/* Guest Selection Styles */
+.guest-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.guest-card-display {
+    background-color: #fff;
+    border: 2px solid #e0d5c7;
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.guest-name {
+    font-size: 1.3rem;
+    color: #4a4a4a;
+    margin: 0 0 0.5rem 0;
+    font-weight: 500;
+}
+
+.guest-details {
+    font-size: 0.95rem;
+    color: #6a6a6a;
+    margin: 0.25rem 0;
+}
+
+.guest-details:empty {
+    display: none;
+}
+
+.guest-plus-one {
+    font-size: 0.9rem;
+    color: #8b7355;
+    margin: 0.5rem 0 0 0;
+    font-style: italic;
+    font-weight: 500;
+}
+
+/* Guest Section Styling */
+.guest-section {
+    margin-bottom: 2.5rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid #e0d5c7;
+}
+
+.guest-section:last-of-type {
+    border-bottom: none;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    color: #8b7355;
+    margin-bottom: 1rem;
+    font-weight: 500;
+    font-family: 'Georgia', serif;
+}
+
+.form-hint {
+    display: block;
+    font-size: 0.85rem;
+    color: #8b7355;
+    margin-top: 0.5rem;
+    font-style: italic;
+}
+
