@@ -333,6 +333,19 @@ body {
     .rsvp-title {
         font-size: 2rem;
     }
+    
+    .help-section {
+        padding: 1rem;
+    }
+    
+    .help-text {
+        font-size: 0.9rem;
+    }
+    
+    .help-link {
+        font-size: 0.9rem;
+        padding: 0.6rem 1.2rem;
+    }
 }
 
 /* Additional RSVP Form Elements */
@@ -476,5 +489,57 @@ select.form-input {
     color: #8b7355;
     margin-top: 0.5rem;
     font-style: italic;
+}
+
+/* Help Section Styles */
+.help-section {
+    text-align: center;
+    margin-top: 2rem;
+    padding: 1.5rem;
+}
+
+.help-text {
+    font-size: 1rem;
+    color: #6a6a6a;
+    margin-bottom: 1rem;
+}
+
+.help-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1.5rem;
+    background-color: #8b7355;
+    border-radius: 25px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    color: #fff;
+}
+
+.help-link:hover {
+    background-color: #6f5a43;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 115, 85, 0.3);
+}
+
+.help-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: bold;
+    font-family: 'Georgia', serif;
+    line-height: 1;
+}
+
+.help-label {
+    font-size: 1rem;
+    font-weight: 500;
+    letter-spacing: 0.5px;
 }
 

@@ -1,12 +1,11 @@
 // Configuration
-const USE_MOCK_DATA = true; // Set to false when using real Supabase
-const SUPABASE_URL = 'YOUR_SUPABASE_URL'; // e.g., 'https://xxxxx.supabase.co'
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const USE_MOCK_DATA = false; // Set to false when using real Supabase
 
 // Initialize Supabase client (only if not using mock data)
 let supabase;
-if (!USE_MOCK_DATA && typeof window.supabase !== 'undefined') {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+if (!USE_MOCK_DATA && typeof window.supabase !== 'undefined' && typeof SUPABASE_CONFIG !== 'undefined') {
+    supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+    console.log('Supabase client initialized');
 }
 
 // Mock database (for testing)
@@ -110,11 +109,54 @@ function lookupGuestsMock(fullName) {
     return matchesArray;
 }
 
+// Helper function to get plus one from Supabase
+async function getPlusOneSupabase(guestId) {
+    if (!guestId) return null;
+    
+    const { data, error } = await supabase
+        .from('guests')
+        .select('*')
+        .eq('id', guestId)
+        .single();
+    
+    return data || null;
+}
+
+// Helper function to find all linked guests from Supabase
+async function getLinkedGuestsSupabase(guest) {
+    const linked = [guest];
+    
+    // Add their plus one if they have one
+    if (guest.plus_one_id) {
+        const plusOne = await getPlusOneSupabase(guest.plus_one_id);
+        if (plusOne && plusOne.id !== guest.id) {
+            linked.push(plusOne);
+        }
+    }
+    
+    // Check if anyone else has this guest as their plus one
+    const { data: reverseLinks } = await supabase
+        .from('guests')
+        .select('*')
+        .eq('plus_one_id', guest.id);
+    
+    if (reverseLinks && reverseLinks.length > 0) {
+        reverseLinks.forEach(reverseLink => {
+            if (reverseLink.id !== guest.id && !linked.find(l => l.id === reverseLink.id)) {
+                linked.push(reverseLink);
+            }
+        });
+    }
+    
+    return linked;
+}
+
 // Smart lookup function that returns all potential matches (Supabase version)
 async function lookupGuestsSupabase(fullName) {
     const { firstName, lastName } = parseFullName(fullName);
     const allMatches = new Set(); // Use Set to avoid duplicates
     const matchesArray = [];
+    const initialMatches = [];
     
     // Strategy 1: Try exact match with parsed first and last name
     let { data: data1 } = await supabase
@@ -124,12 +166,7 @@ async function lookupGuestsSupabase(fullName) {
         .ilike('last_name', lastName);
     
     if (data1 && data1.length > 0) {
-        data1.forEach(guest => {
-            if (!allMatches.has(guest.id)) {
-                allMatches.add(guest.id);
-                matchesArray.push(guest);
-            }
-        });
+        initialMatches.push(...data1);
     }
     
     // Strategy 2: If there's a last name, try partial matches
@@ -142,9 +179,8 @@ async function lookupGuestsSupabase(fullName) {
         
         if (data2 && data2.length > 0) {
             data2.forEach(guest => {
-                if (!allMatches.has(guest.id)) {
-                    allMatches.add(guest.id);
-                    matchesArray.push(guest);
+                if (!initialMatches.find(g => g.id === guest.id)) {
+                    initialMatches.push(guest);
                 }
             });
         }
@@ -162,10 +198,21 @@ async function lookupGuestsSupabase(fullName) {
             const guestFullName = `${guest.first_name} ${guest.last_name}`.toLowerCase();
             if (guestFullName.includes(firstName.toLowerCase()) || 
                 (lastName && guestFullName.includes(lastName.toLowerCase()))) {
-                if (!allMatches.has(guest.id)) {
-                    allMatches.add(guest.id);
-                    matchesArray.push(guest);
+                if (!initialMatches.find(g => g.id === guest.id)) {
+                    initialMatches.push(guest);
                 }
+            }
+        });
+    }
+    
+    // Now fetch linked guests (plus ones) for each match
+    for (const guest of initialMatches) {
+        const linkedGuests = await getLinkedGuestsSupabase(guest);
+        
+        linkedGuests.forEach(linkedGuest => {
+            if (!allMatches.has(linkedGuest.id)) {
+                allMatches.add(linkedGuest.id);
+                matchesArray.push(linkedGuest);
             }
         });
     }
@@ -239,7 +286,8 @@ function displayGuestList(guests) {
         // Check if guest has a plus one
         let plusOneInfo = '';
         if (guest.plus_one_id) {
-            const plusOne = getPlusOne(guest.plus_one_id);
+            // Find the plus one in the matched guests list
+            const plusOne = matchedGuests.find(g => g.id === guest.plus_one_id);
             if (plusOne) {
                 plusOneInfo = `<p class="guest-plus-one">PIC: ${plusOne.first_name} ${plusOne.last_name}</p>`;
             }
@@ -257,22 +305,26 @@ function displayGuestList(guests) {
 }
 
 // Continue button handler from guest selection
-document.getElementById('continueToRsvpBtn').addEventListener('click', function() {
+document.getElementById('continueToRsvpBtn').addEventListener('click', async function() {
     if (matchedGuests.length > 0) {
         // Proceed with the first matched guest
-        selectGuest(matchedGuests[0]);
+        await selectGuest(matchedGuests[0]);
     }
 });
 
 // Handle guest selection
-function selectGuest(guest) {
+async function selectGuest(guest) {
     // Store guest data
     currentGuest = guest;
     currentPlusOne = null;
     
     // Check if guest has a plus one
     if (guest.plus_one_id) {
-        currentPlusOne = getPlusOne(guest.plus_one_id);
+        if (USE_MOCK_DATA) {
+            currentPlusOne = getPlusOne(guest.plus_one_id);
+        } else {
+            currentPlusOne = await getPlusOneSupabase(guest.plus_one_id);
+        }
     }
     
     // Build greeting
@@ -462,13 +514,15 @@ document.getElementById('rsvpDetailsForm').addEventListener('submit', async func
             const plusOneRsvpResponse = document.getElementById('plusOneRsvpResponse').value;
             const plusOneMealChoice = document.getElementById('plusOneMealChoice').value || null;
             const plusOneDietaryNotes = document.getElementById('plusOneDietaryNotes').value.trim() || null;
+            const plusOneGeneralNotes = document.getElementById('plusOneGeneralNotes').value.trim() || null;
             
             if (USE_MOCK_DATA) {
                 const result = updateGuestMock(currentPlusOne.id, {
                     rsvp: plusOneRsvpResponse,
                     meal_choice: plusOneMealChoice,
                     song_request: songRequest, // Share song request
-                    dietary_notes: plusOneDietaryNotes
+                    dietary_notes: plusOneDietaryNotes,
+                    general_notes: plusOneGeneralNotes
                 });
                 
                 if (!result.success) {
@@ -482,6 +536,7 @@ document.getElementById('rsvpDetailsForm').addEventListener('submit', async func
                         meal_choice: plusOneMealChoice,
                         song_request: songRequest,
                         dietary_notes: plusOneDietaryNotes,
+                        general_notes: plusOneGeneralNotes,
                         updated_at: new Date().toISOString()
                     })
                     .eq('id', currentPlusOne.id);

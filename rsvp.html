@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="styles.css">
     <!-- Supabase Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Config File -->
+    <script src="config.js"></script>
 </head>
 <body>
     <!-- Navigation Header -->
@@ -162,13 +164,24 @@
 
                         <!-- Plus One Dietary Notes -->
                         <div class="form-group" id="plusOneDietaryNotesGroup" style="display: none;">
-                            <label for="plusOneDietaryNotes" class="form-label">Dietary Restrictions/Notes (Optional)</label>
+                            <label for="plusOneDietaryNotes" class="form-label">Dietary Restrictions (Optional)</label>
                             <textarea 
                                 id="plusOneDietaryNotes" 
                                 name="plusOneDietaryNotes" 
                                 class="form-input form-textarea" 
                                 rows="3"
                                 placeholder="Please let us know of any allergies or dietary restrictions"
+                            ></textarea>
+                        </div>
+                        <!-- Plus One General Notes -->
+                        <div class="form-group" id="plusOneGeneralNotesGroup" style="display: none;">
+                            <label for="plusOneGeneralNotes" class="form-label">General Notes (Optional)</label>
+                            <textarea 
+                                id="plusOneGeneralNotes" 
+                                name="plusOneGeneralNotes" 
+                                class="form-input form-textarea" 
+                                rows="3"
+                                placeholder="Please let us know of anything else you would like to share"
                             ></textarea>
                         </div>
                     </div>
@@ -198,6 +211,15 @@
                 <p class="success-message">We look forward to celebrating with you!</p>
                 <button type="button" class="submit-btn" onclick="window.location.href='index.html'">Return to Home</button>
             </div>
+        </div>
+        
+        <!-- Help Section -->
+        <div class="help-section">
+            <p class="help-text">Need help with your RSVP?</p>
+            <a href="sms:+12483038965&body=I'm having some issues RSVP'ing, can you help?" class="help-link">
+                <span class="help-icon">?</span>
+                <span class="help-label">Text Me!</span>
+            </a>
         </div>
     </main>
 

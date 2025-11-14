@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS guests (
     meal_choice TEXT CHECK (meal_choice IN ('chicken', 'beef', 'fish', 'vegetarian')),
     song_request TEXT,
     dietary_notes TEXT,
+    general_notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
