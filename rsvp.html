@@ -56,14 +56,18 @@
 
             <!-- Step 1.5: Guest Selection -->
             <div class="rsvp-content" id="guestSelectionSection" style="display: none;">
-                <h1 class="rsvp-title">Confirm Your Information</h1>
+                <h1 class="rsvp-title">Select Guest(s)</h1>
                 <p class="rsvp-subtitle">We found the following guest(s):</p>
+                
+                <div class="selection-instructions">
+                    <strong>Instructions:</strong> Click on a guest card below to select who you'd like to RSVP for. You can select multiple guests if needed.
+                </div>
                 
                 <div id="guestList" class="guest-list">
                     <!-- Guest cards will be dynamically inserted here -->
                 </div>
                 
-                <button type="button" class="submit-btn" id="continueToRsvpBtn">Continue</button>
+                <button type="button" class="submit-btn" id="continueToRsvpBtn" disabled>Continue</button>
                 <button type="button" class="back-btn" id="backToNameBtn">Go Back</button>
             </div>
 
@@ -208,7 +212,8 @@
             <div class="rsvp-content" id="successSection" style="display: none;">
                 <h1 class="rsvp-title">Thank You!</h1>
                 <p class="rsvp-subtitle">Your RSVP has been successfully submitted.</p>
-                <p class="success-message">We look forward to celebrating with you!</p>
+                <p class="success-message" id="successMessageAttending">We look forward to celebrating with you!</p>
+                <p class="success-message" id="successMessageNotAttending" style="display: none;">We're sorry you can't make it. You will be missed!</p>
                 <button type="button" class="submit-btn" onclick="window.location.href='index.html'">Return to Home</button>
             </div>
         </div>

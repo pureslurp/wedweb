@@ -306,6 +306,18 @@ body {
     transform: translateY(0);
 }
 
+.submit-btn:disabled {
+    background-color: #c9b9a8;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.submit-btn:disabled:hover {
+    transform: none;
+    box-shadow: none;
+    background-color: #c9b9a8;
+}
+
 /* RSVP Page Responsive */
 @media (max-width: 768px) {
     .rsvp-container {
@@ -437,6 +449,38 @@ select.form-input {
     border: 2px solid #e0d5c7;
     border-radius: 8px;
     padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.guest-card-display:hover {
+    border-color: #8b7355;
+    box-shadow: 0 4px 12px rgba(139, 115, 85, 0.2);
+    transform: translateY(-2px);
+}
+
+.guest-card-display.selected {
+    border-color: #8b7355;
+    background-color: #f9f5f1;
+    box-shadow: 0 4px 12px rgba(139, 115, 85, 0.3);
+}
+
+.guest-card-display.selected::before {
+    content: '✓';
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 30px;
+    height: 30px;
+    background-color: #8b7355;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
 }
 
 .guest-name {
@@ -541,5 +585,17 @@ select.form-input {
     font-size: 1rem;
     font-weight: 500;
     letter-spacing: 0.5px;
+}
+
+/* Guest Selection Instructions */
+.selection-instructions {
+    font-size: 0.95rem;
+    color: #8b7355;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background-color: #f9f5f1;
+    border-radius: 8px;
+    border-left: 4px solid #8b7355;
+    text-align: left;
 }
 

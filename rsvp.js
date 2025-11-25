@@ -251,7 +251,7 @@ document.getElementById('nameLookupForm').addEventListener('submit', async funct
         const guests = await lookupGuests(fullName);
         
         if (!guests || guests.length === 0) {
-            errorMessage.textContent = 'Guest not found. Please check your name and try again, or contact the couple for assistance.';
+            errorMessage.textContent = 'Guest not found. Please check your name and try again, or click "Text Me" below for assistance.';
             errorMessage.style.display = 'block';
             return;
         }
@@ -272,16 +272,19 @@ document.getElementById('nameLookupForm').addEventListener('submit', async funct
 
 // Store the matched guests for later use
 let matchedGuests = [];
+let selectedGuests = new Set(); // Track selected guest IDs
 
 // Display list of matching guests
 function displayGuestList(guests) {
     matchedGuests = guests; // Store for the continue button
+    selectedGuests.clear(); // Reset selection
     const guestList = document.getElementById('guestList');
     guestList.innerHTML = ''; // Clear previous results
     
     guests.forEach(guest => {
         const guestCard = document.createElement('div');
         guestCard.className = 'guest-card-display';
+        guestCard.dataset.guestId = guest.id; // Store guest ID for selection
         
         // Check if guest has a plus one
         let plusOneInfo = '';
@@ -289,7 +292,7 @@ function displayGuestList(guests) {
             // Find the plus one in the matched guests list
             const plusOne = matchedGuests.find(g => g.id === guest.plus_one_id);
             if (plusOne) {
-                plusOneInfo = `<p class="guest-plus-one">PIC: ${plusOne.first_name} ${plusOne.last_name}</p>`;
+                plusOneInfo = `<p class="guest-plus-one">Plus One: ${plusOne.first_name} ${plusOne.last_name}</p>`;
             }
         }
         
@@ -300,15 +303,50 @@ function displayGuestList(guests) {
             ${plusOneInfo}
         `;
         
+        // Add click handler to toggle selection
+        guestCard.addEventListener('click', function() {
+            toggleGuestSelection(guest.id, guestCard);
+        });
+        
         guestList.appendChild(guestCard);
     });
+    
+    // Disable continue button initially
+    updateContinueButton();
+}
+
+// Toggle guest selection
+function toggleGuestSelection(guestId, cardElement) {
+    if (selectedGuests.has(guestId)) {
+        selectedGuests.delete(guestId);
+        cardElement.classList.remove('selected');
+    } else {
+        selectedGuests.add(guestId);
+        cardElement.classList.add('selected');
+    }
+    updateContinueButton();
+}
+
+// Update continue button state
+function updateContinueButton() {
+    const continueBtn = document.getElementById('continueToRsvpBtn');
+    if (selectedGuests.size > 0) {
+        continueBtn.disabled = false;
+    } else {
+        continueBtn.disabled = true;
+    }
 }
 
 // Continue button handler from guest selection
 document.getElementById('continueToRsvpBtn').addEventListener('click', async function() {
-    if (matchedGuests.length > 0) {
-        // Proceed with the first matched guest
-        await selectGuest(matchedGuests[0]);
+    if (selectedGuests.size > 0) {
+        // Get the first selected guest
+        const selectedGuestId = Array.from(selectedGuests)[0];
+        const guest = matchedGuests.find(g => g.id === selectedGuestId);
+        
+        if (guest) {
+            await selectGuest(guest);
+        }
     }
 });
 
@@ -545,6 +583,31 @@ document.getElementById('rsvpDetailsForm').addEventListener('submit', async func
                     throw error;
                 }
             }
+        }
+        
+        // Determine which success message to show based on RSVP responses
+        const plusOneRsvp = currentPlusOne ? document.getElementById('plusOneRsvpResponse').value : '';
+        const isAnyoneAttending = rsvpResponse === 'yes' || plusOneRsvp === 'yes';
+        
+        // Get success message elements
+        const successMsgAttending = document.getElementById('successMessageAttending');
+        const successMsgNotAttending = document.getElementById('successMessageNotAttending');
+        
+        // Check if elements exist (in case page wasn't refreshed after update)
+        if (!successMsgAttending || !successMsgNotAttending) {
+            console.error('Success message elements not found. Please refresh the page.');
+            // Fallback behavior
+            document.getElementById('rsvpFormSection').style.display = 'none';
+            document.getElementById('successSection').style.display = 'block';
+            return;
+        }
+        
+        if (isAnyoneAttending) {
+            successMsgAttending.style.display = 'block';
+            successMsgNotAttending.style.display = 'none';
+        } else {
+            successMsgAttending.style.display = 'none';
+            successMsgNotAttending.style.display = 'block';
         }
         
         // Show success message
