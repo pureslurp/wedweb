@@ -8,9 +8,16 @@
 </head>
 <body>
     <!-- Navigation Header -->
+    <div class="nav-overlay" id="navOverlay"></div>
     <nav class="navbar">
         <div class="nav-container">
-            <ul class="nav-menu">
+            <div class="nav-brand">Savannah & Sean</div>
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+                <span class="hamburger"></span>
+                <span class="hamburger"></span>
+                <span class="hamburger"></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
                 <li class="nav-item"><a href="index.html" class="nav-link active">Home</a></li>
                 <li class="nav-item"><a href="#" class="nav-link">Our Story</a></li>
                 <li class="nav-item"><a href="#" class="nav-link">Photos</a></li>
@@ -43,6 +50,48 @@
     <footer class="footer">
         <p>&copy; 2025 Savannah & Sean. All rights reserved.</p>
     </footer>
+
+    <!-- Mobile Navigation Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const navToggle = document.getElementById('navToggle');
+            const navMenu = document.getElementById('navMenu');
+            const navOverlay = document.getElementById('navOverlay');
+            
+            function closeMenu() {
+                if (navToggle) navToggle.classList.remove('active');
+                if (navMenu) navMenu.classList.remove('active');
+                if (navOverlay) navOverlay.classList.remove('active');
+            }
+            
+            if (navToggle && navMenu) {
+                navToggle.addEventListener('click', function() {
+                    navToggle.classList.toggle('active');
+                    navMenu.classList.toggle('active');
+                    if (navOverlay) navOverlay.classList.toggle('active');
+                });
+                
+                // Close menu when clicking on overlay
+                if (navOverlay) {
+                    navOverlay.addEventListener('click', closeMenu);
+                }
+                
+                // Close menu when clicking on a link
+                const navLinks = document.querySelectorAll('.nav-link');
+                navLinks.forEach(link => {
+                    link.addEventListener('click', closeMenu);
+                });
+                
+                // Close menu when clicking outside
+                document.addEventListener('click', function(event) {
+                    const isClickInsideNav = navMenu.contains(event.target) || navToggle.contains(event.target);
+                    if (!isClickInsideNav && navMenu.classList.contains('active')) {
+                        closeMenu();
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>
 
