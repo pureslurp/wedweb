@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSVP | Savannah & Sean</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Supabase Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Config File -->
+    <script src="config.js"></script>
+</head>
+<body>
+    <!-- Navigation Header -->
+    <div class="nav-overlay" id="navOverlay"></div>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">Savannah & Sean</div>
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+                <span class="hamburger"></span>
+                <span class="hamburger"></span>
+                <span class="hamburger"></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li class="nav-item"><a href="index.html" class="nav-link">Home</a></li>
+                <li class="nav-item"><a href="ourstory.html" class="nav-link">Our Story</a></li>
+                <li class="nav-item"><a href="#" class="nav-link">Photos</a></li>
+                <li class="nav-item"><a href="#" class="nav-link">Wedding Party</a></li>
+                <li class="nav-item"><a href="#" class="nav-link">Q+A</a></li>
+                <li class="nav-item"><a href="#" class="nav-link">Travel</a></li>
+                <li class="nav-item"><a href="#" class="nav-link">Registry</a></li>
+                <li class="nav-item"><a href="rsvp.html" class="nav-link active">RSVP</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- RSVP Section -->
+    <main class="rsvp-section">
+        <div class="rsvp-container">
+            <!-- Step 1: Name Lookup -->
+            <div class="rsvp-content" id="nameLookupSection">
+                <h1 class="rsvp-title">RSVP</h1>
+                <p class="rsvp-subtitle">Please enter your name to begin</p>
+                
+                <form class="rsvp-form" id="nameLookupForm">
+                    <div class="form-group">
+                        <label for="fullName" class="form-label">Full Name</label>
+                        <input 
+                            type="text" 
+                            id="fullName" 
+                            name="fullName" 
+                            class="form-input" 
+                            placeholder="Enter your full name"
+                            required
+                        >
+                    </div>
+                    
+                    <button type="submit" class="submit-btn">Continue</button>
+                </form>
+                
+                <div id="errorMessage" class="error-message"></div>
+            </div>
+
+            <!-- Step 1.5: Guest Selection -->
+            <div class="rsvp-content" id="guestSelectionSection" style="display: none;">
+                <h1 class="rsvp-title">Select Guest(s)</h1>
+                <p class="rsvp-subtitle">We found the following guest(s):</p>
+                
+                <div class="selection-instructions">
+                    <strong>Instructions:</strong> Click on a guest card below to select who you'd like to RSVP for. You can select multiple guests if needed.
+                </div>
+                
+                <div id="guestList" class="guest-list">
+                    <!-- Guest cards will be dynamically inserted here -->
+                </div>
+                
+                <button type="button" class="submit-btn" id="continueToRsvpBtn" disabled>Continue</button>
+                <button type="button" class="back-btn" id="backToNameBtn">Go Back</button>
+            </div>
+
+            <!-- Step 2: RSVP Form -->
+            <div class="rsvp-content" id="rsvpFormSection" style="display: none;">
+                <h1 class="rsvp-title">Complete Your RSVP</h1>
+                <p class="rsvp-subtitle" id="guestGreeting"></p>
+                
+                <form class="rsvp-form" id="rsvpDetailsForm">
+                    <!-- Primary Guest Section -->
+                    <div class="guest-section">
+                        <h3 class="section-title" id="primaryGuestName"></h3>
+                        
+                        <!-- Guest Info Display -->
+                        <div class="guest-info">
+                            <p><strong>Email:</strong> <span id="displayEmail"></span></p>
+                            <p><strong>Phone:</strong> <span id="displayPhone"></span></p>
+                            <p><strong>Address:</strong> <span id="displayAddress"></span></p>
+                        </div>
+
+                        <!-- RSVP Response -->
+                        <div class="form-group">
+                            <label for="rsvpResponse" class="form-label">Will you be attending?</label>
+                            <select id="rsvpResponse" name="rsvpResponse" class="form-input" required>
+                                <option value="">Please select...</option>
+                                <option value="yes">Yes, I will attend</option>
+                                <option value="no">No, I cannot attend</option>
+                            </select>
+                        </div>
+
+                        <!-- Meal Choice (shown only if attending) -->
+                        <div class="form-group" id="mealChoiceGroup" style="display: none;">
+                            <label for="mealChoice" class="form-label">Meal Choice</label>
+                            <select id="mealChoice" name="mealChoice" class="form-input">
+                                <option value="">Please select...</option>
+                                <option value="chicken">Chicken</option>
+                                <option value="beef">Beef</option>
+                                <option value="fish">Fish</option>
+                                <option value="vegetarian">Vegetarian</option>
+                            </select>
+                        </div>
+
+                        <!-- Dietary Notes -->
+                        <div class="form-group" id="dietaryNotesGroup" style="display: none;">
+                            <label for="dietaryNotes" class="form-label">Dietary Restrictions (Optional)</label>
+                            <textarea 
+                                id="dietaryNotes" 
+                                name="dietaryNotes" 
+                                class="form-input form-textarea" 
+                                rows="3"
+                                placeholder="Please let us know of any allergies or dietary restrictions"
+                            ></textarea>
+                        </div>
+                        <!-- General Notes -->
+                        <div class="form-group" id="generalNotesGroup" style="display: none;">
+                            <label for="generalNotes" class="form-label">General Notes (Optional)</label>
+                            <textarea 
+                                id="generalNotes" 
+                                name="generalNotes" 
+                                class="form-input form-textarea" 
+                                rows="3"
+                                placeholder="Please let us know of anything else you would like to share"
+                            ></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Plus One Section (shown only if guest has a plus one) -->
+                    <div class="guest-section" id="plusOneSection" style="display: none;">
+                        <h3 class="section-title" id="plusOneName"></h3>
+                        
+                        <!-- Plus One Info Display -->
+                        <div class="guest-info">
+                            <p><strong>Email:</strong> <span id="displayPlusOneEmail"></span></p>
+                            <p><strong>Phone:</strong> <span id="displayPlusOnePhone"></span></p>
+                        </div>
+
+                        <!-- Plus One RSVP Response -->
+                        <div class="form-group">
+                            <label for="plusOneRsvpResponse" class="form-label">Will they be attending?</label>
+                            <select id="plusOneRsvpResponse" name="plusOneRsvpResponse" class="form-input">
+                                <option value="">Please select...</option>
+                                <option value="yes">Yes, they will attend</option>
+                                <option value="no">No, they cannot attend</option>
+                            </select>
+                        </div>
+
+                        <!-- Plus One Meal Choice -->
+                        <div class="form-group" id="plusOneMealChoiceGroup" style="display: none;">
+                            <label for="plusOneMealChoice" class="form-label">Meal Choice</label>
+                            <select id="plusOneMealChoice" name="plusOneMealChoice" class="form-input">
+                                <option value="">Please select...</option>
+                                <option value="chicken">Chicken</option>
+                                <option value="beef">Beef</option>
+                                <option value="fish">Fish</option>
+                                <option value="vegetarian">Vegetarian</option>
+                            </select>
+                        </div>
+
+                        <!-- Plus One Dietary Notes -->
+                        <div class="form-group" id="plusOneDietaryNotesGroup" style="display: none;">
+                            <label for="plusOneDietaryNotes" class="form-label">Dietary Restrictions (Optional)</label>
+                            <textarea 
+                                id="plusOneDietaryNotes" 
+                                name="plusOneDietaryNotes" 
+                                class="form-input form-textarea" 
+                                rows="3"
+                                placeholder="Please let us know of any allergies or dietary restrictions"
+                            ></textarea>
+                        </div>
+                        <!-- Plus One General Notes -->
+                        <div class="form-group" id="plusOneGeneralNotesGroup" style="display: none;">
+                            <label for="plusOneGeneralNotes" class="form-label">General Notes (Optional)</label>
+                            <textarea 
+                                id="plusOneGeneralNotes" 
+                                name="plusOneGeneralNotes" 
+                                class="form-input form-textarea" 
+                                rows="3"
+                                placeholder="Please let us know of anything else you would like to share"
+                            ></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Song Request (shared between both) -->
+                    <div class="form-group" id="songRequestGroup" style="display: none;">
+                        <label for="songRequest" class="form-label">Song Request (Optional)</label>
+                        <input 
+                            type="text" 
+                            id="songRequest" 
+                            name="songRequest" 
+                            class="form-input" 
+                            placeholder="Artist - Song Title"
+                        >
+                        <small class="form-hint">This will be shared for both guests</small>
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="submitRsvpBtn">Submit RSVP</button>
+                    <button type="button" class="back-btn" id="backBtn">Go Back</button>
+                </form>
+            </div>
+
+            <!-- Success Message -->
+            <div class="rsvp-content" id="successSection" style="display: none;">
+                <h1 class="rsvp-title">Thank You!</h1>
+                <p class="rsvp-subtitle">Your RSVP has been successfully submitted.</p>
+                <p class="success-message" id="successMessageAttending">We look forward to celebrating with you!</p>
+                <p class="success-message" id="successMessageNotAttending" style="display: none;">We're sorry you can't make it. You will be missed!</p>
+                <button type="button" class="submit-btn" onclick="window.location.href='index.html'">Return to Home</button>
+            </div>
+        </div>
+        
+        <!-- Help Section -->
+        <div class="help-section">
+            <p class="help-text">Need help with your RSVP?</p>
+            <a href="sms:+12483038965&body=I'm having some issues RSVP'ing, can you help?" class="help-link">
+                <span class="help-icon">?</span>
+                <span class="help-label">Text Me!</span>
+            </a>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2025 Savannah & Sean. All rights reserved.</p>
+    </footer>
+
+    <script src="rsvp.js"></script>
+</body>
+</html>
+
