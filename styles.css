@@ -1391,3 +1391,217 @@ select.form-input {
     }
 }
 
+/* Wedding Party Page Styles */
+.party-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 4rem 2rem;
+    min-height: calc(100vh - 300px);
+}
+
+.party-container {
+    width: 100%;
+}
+
+.party-title {
+    font-size: 3rem;
+    font-weight: 400;
+    color: #8b7355;
+    text-align: center;
+    margin-bottom: 0.5rem;
+    letter-spacing: 2px;
+}
+
+.party-subtitle {
+    font-size: 1.3rem;
+    font-weight: 300;
+    color: #6a6a6a;
+    text-align: center;
+    margin-bottom: 4rem;
+    font-style: italic;
+}
+
+.party-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    margin-top: 3rem;
+}
+
+.party-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.column-title {
+    font-size: 2rem;
+    font-weight: 400;
+    color: #4a4a4a;
+    text-align: center;
+    margin-bottom: 2.5rem;
+    letter-spacing: 1.5px;
+    border-bottom: 2px solid #8b7355;
+    padding-bottom: 0.75rem;
+    width: 100%;
+    max-width: 300px;
+}
+
+.party-member {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 2.5rem;
+    transition: transform 0.3s ease;
+    animation: fadeIn 0.6s ease-in;
+}
+
+.party-member:hover {
+    transform: translateY(-5px);
+}
+
+.party-photo {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    background: linear-gradient(135deg, #e8dcd0 0%, #d4c4b8 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+    margin-bottom: 1.25rem;
+}
+
+.party-member:hover .party-photo {
+    box-shadow: 0 12px 32px rgba(139, 115, 85, 0.25);
+    transform: scale(1.05);
+}
+
+.party-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.party-photo:empty::before {
+    content: '📷';
+    font-size: 3rem;
+    color: #8b7355;
+    opacity: 0.5;
+}
+
+.member-name {
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: #4a4a4a;
+    text-align: center;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.5px;
+}
+
+.member-role {
+    font-size: 1rem;
+    font-weight: 400;
+    color: #8b7355;
+    text-align: center;
+    font-style: italic;
+    letter-spacing: 0.5px;
+}
+
+/* Wedding Party Responsive Design */
+@media (max-width: 900px) {
+    .party-grid {
+        gap: 3rem;
+    }
+
+    .party-photo {
+        width: 180px;
+        height: 180px;
+    }
+
+    .member-name {
+        font-size: 1.3rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .party-section {
+        padding: 3rem 1.5rem;
+    }
+
+    .party-title {
+        font-size: 2.2rem;
+    }
+
+    .party-subtitle {
+        font-size: 1.1rem;
+        margin-bottom: 3rem;
+    }
+
+    .party-grid {
+        grid-template-columns: 1fr;
+        gap: 4rem;
+    }
+
+    .column-title {
+        font-size: 1.8rem;
+    }
+
+    .party-photo {
+        width: 180px;
+        height: 180px;
+    }
+
+    .member-name {
+        font-size: 1.3rem;
+    }
+
+    .member-role {
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .party-section {
+        padding: 2rem 1rem;
+    }
+
+    .party-title {
+        font-size: 1.8rem;
+    }
+
+    .party-subtitle {
+        font-size: 1rem;
+        margin-bottom: 2.5rem;
+    }
+
+    .party-grid {
+        gap: 3rem;
+    }
+
+    .column-title {
+        font-size: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .party-member {
+        margin-bottom: 2rem;
+    }
+
+    .party-photo {
+        width: 160px;
+        height: 160px;
+    }
+
+    .member-name {
+        font-size: 1.2rem;
+    }
+
+    .member-role {
+        font-size: 0.9rem;
+    }
+}
+
