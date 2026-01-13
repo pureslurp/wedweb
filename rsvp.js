@@ -41,11 +41,43 @@ document.addEventListener('DOMContentLoaded', function() {
 // Configuration
 const USE_MOCK_DATA = false; // Set to false when using real Supabase
 
-// Initialize Supabase client (only if not using mock data)
-let supabase;
-if (!USE_MOCK_DATA && typeof window.supabase !== 'undefined' && typeof SUPABASE_CONFIG !== 'undefined') {
-    supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
-    console.log('Supabase client initialized');
+// Prevent multiple script loads - check if already initialized
+if (window.rsvpSystemInitialized) {
+    console.warn('[RSVP DEBUG] rsvp.js has already been loaded. Skipping re-initialization.');
+} else {
+    window.rsvpSystemInitialized = true;
+    
+    console.log('[RSVP DEBUG] Script loading...');
+    console.log('[RSVP DEBUG] USE_MOCK_DATA:', USE_MOCK_DATA);
+    console.log('[RSVP DEBUG] window.supabase exists:', typeof window.supabase !== 'undefined');
+    console.log('[RSVP DEBUG] SUPABASE_CONFIG exists:', typeof SUPABASE_CONFIG !== 'undefined');
+
+    // Initialize Supabase client (only if not using mock data)
+    // Use window object to store client and prevent re-initialization conflicts
+    if (typeof window.rsvpSupabaseClient === 'undefined') {
+        window.rsvpSupabaseClient = null;
+    }
+    
+    var supabaseClient = window.rsvpSupabaseClient;
+    
+    if (!USE_MOCK_DATA && typeof window.supabase !== 'undefined' && typeof SUPABASE_CONFIG !== 'undefined') {
+        try {
+            if (!supabaseClient) {
+                supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+                window.rsvpSupabaseClient = supabaseClient; // Store in window to prevent conflicts
+                console.log('[RSVP DEBUG] Supabase client initialized successfully');
+            } else {
+                console.log('[RSVP DEBUG] Using existing Supabase client');
+            }
+        } catch (error) {
+            console.error('[RSVP DEBUG] Error initializing Supabase client:', error);
+        }
+    } else {
+        console.warn('[RSVP DEBUG] Supabase not initialized. Check that SUPABASE_CONFIG is defined and Supabase library is loaded.');
+    }
+    
+    // Use the window-stored client
+    var supabaseClient = window.rsvpSupabaseClient;
 }
 
 // Mock database (for testing)
@@ -153,7 +185,7 @@ function lookupGuestsMock(fullName) {
 async function getPlusOneSupabase(guestId) {
     if (!guestId) return null;
     
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
         .from('guests')
         .select('*')
         .eq('id', guestId)
@@ -164,6 +196,12 @@ async function getPlusOneSupabase(guestId) {
 
 // Helper function to find all linked guests from Supabase
 async function getLinkedGuestsSupabase(guest) {
+    const client = window.rsvpSupabaseClient || supabaseClient;
+    if (!client) {
+        console.error('[RSVP DEBUG] Supabase client not available in getLinkedGuestsSupabase');
+        return [guest]; // Return at least the guest itself
+    }
+    
     const linked = [guest];
     
     // Add their plus one if they have one
@@ -175,7 +213,7 @@ async function getLinkedGuestsSupabase(guest) {
     }
     
     // Check if anyone else has this guest as their plus one
-    const { data: reverseLinks } = await supabase
+    const { data: reverseLinks } = await client
         .from('guests')
         .select('*')
         .eq('plus_one_id', guest.id);
@@ -193,17 +231,71 @@ async function getLinkedGuestsSupabase(guest) {
 
 // Smart lookup function that returns all potential matches (Supabase version)
 async function lookupGuestsSupabase(fullName) {
+    // Use window-stored client if available, fall back to local variable
+    const client = window.rsvpSupabaseClient || supabaseClient;
+    
+    if (!client) {
+        const errorMsg = 'Supabase client not initialized. Please refresh the page.';
+        console.error('[RSVP DEBUG]', errorMsg);
+        throw new Error(errorMsg);
+    }
+    
+    // First, test if we can query the database at all
+    console.log('[RSVP DEBUG] Testing database connection...');
+    const { data: testData, error: testError, count } = await client
+        .from('guests')
+        .select('*', { count: 'exact' })
+        .limit(5);
+    
+    if (testError) {
+        console.error('[RSVP DEBUG] Database connection error:', testError);
+        
+        // Check if it's an RLS/permission error
+        if (testError.code === 'PGRST301' || testError.message.includes('permission') || testError.message.includes('policy')) {
+            const rlsErrorMsg = 'Database query blocked. This may be a Row Level Security (RLS) issue. Please check your Supabase RLS policies allow public SELECT access.';
+            console.error('[RSVP DEBUG]', rlsErrorMsg);
+            throw new Error(rlsErrorMsg);
+        }
+        
+        throw testError;
+    }
+    
+    // Warn if database is empty (might indicate RLS issue)
+    if (count === 0) {
+        console.warn('[RSVP DEBUG] Database test returned 0 guests. If you expect data, this may indicate an RLS policy issue.');
+    }
+    
+    console.log('[RSVP DEBUG] Database test - Total guests in DB:', count, 'Sample data:', testData);
+    
     const { firstName, lastName } = parseFullName(fullName);
+    console.log('[RSVP DEBUG] Parsed name - firstName:', firstName, 'lastName:', lastName);
     const allMatches = new Set(); // Use Set to avoid duplicates
     const matchesArray = [];
     const initialMatches = [];
     
     // Strategy 1: Try exact match with parsed first and last name
-    let { data: data1 } = await supabase
+    console.log('[RSVP DEBUG] Strategy 1: Querying for exact match...');
+    let { data: data1, error: error1 } = await client
         .from('guests')
         .select('*')
-        .ilike('first_name', firstName)
-        .ilike('last_name', lastName);
+        .ilike('first_name', firstName);
+    
+    if (lastName) {
+        // If we have a last name, filter by it too
+        const { data: data1b, error: error1b } = await client
+            .from('guests')
+            .select('*')
+            .ilike('first_name', firstName)
+            .ilike('last_name', lastName);
+        data1 = data1b;
+        error1 = error1b;
+    }
+    
+    if (error1) {
+        console.error('[RSVP DEBUG] Strategy 1 error:', error1);
+    } else {
+        console.log('[RSVP DEBUG] Strategy 1 returned', data1 ? data1.length : 0, 'guests');
+    }
     
     if (data1 && data1.length > 0) {
         initialMatches.push(...data1);
@@ -211,11 +303,18 @@ async function lookupGuestsSupabase(fullName) {
     
     // Strategy 2: If there's a last name, try partial matches
     if (lastName) {
-        const { data: data2 } = await supabase
+        console.log('[RSVP DEBUG] Strategy 2: Querying for partial match...');
+        const { data: data2, error: error2 } = await client
             .from('guests')
             .select('*')
             .ilike('first_name', `${firstName}%`)
             .ilike('last_name', `${lastName}%`);
+        
+        if (error2) {
+            console.error('[RSVP DEBUG] Strategy 2 error:', error2);
+        } else {
+            console.log('[RSVP DEBUG] Strategy 2 returned', data2 ? data2.length : 0, 'guests');
+        }
         
         if (data2 && data2.length > 0) {
             data2.forEach(guest => {
@@ -227,10 +326,17 @@ async function lookupGuestsSupabase(fullName) {
     }
     
     // Strategy 3: Try searching across both name fields
-    const { data: data3 } = await supabase
+    console.log('[RSVP DEBUG] Strategy 3: Querying with OR pattern...');
+    const { data: data3, error: error3 } = await client
         .from('guests')
         .select('*')
         .or(`first_name.ilike.%${firstName}%,last_name.ilike.%${firstName}%`);
+    
+    if (error3) {
+        console.error('[RSVP DEBUG] Strategy 3 error:', error3);
+    } else {
+        console.log('[RSVP DEBUG] Strategy 3 returned', data3 ? data3.length : 0, 'guests');
+    }
     
     if (data3 && data3.length > 0) {
         data3.forEach(guest => {
@@ -262,18 +368,33 @@ async function lookupGuestsSupabase(fullName) {
 
 // Unified lookup function
 async function lookupGuests(fullName) {
+    console.log('[RSVP DEBUG] lookupGuests called, USE_MOCK_DATA:', USE_MOCK_DATA);
     if (USE_MOCK_DATA) {
+        console.log('[RSVP DEBUG] Using mock data lookup');
         return lookupGuestsMock(fullName);
     } else {
+        console.log('[RSVP DEBUG] Using Supabase lookup, supabase client:', supabaseClient ? 'initialized' : 'null');
+        if (!supabaseClient) {
+            throw new Error('Supabase client not initialized');
+        }
         return await lookupGuestsSupabase(fullName);
     }
 }
 
 // Step 1: Name Lookup Form Handler
-document.getElementById('nameLookupForm').addEventListener('submit', async function(e) {
+console.log('[RSVP DEBUG] Attempting to attach name lookup form handler...');
+const nameLookupForm = document.getElementById('nameLookupForm');
+if (!nameLookupForm) {
+    console.error('[RSVP DEBUG] ERROR: nameLookupForm element not found!');
+} else {
+    console.log('[RSVP DEBUG] nameLookupForm element found, attaching handler...');
+    nameLookupForm.addEventListener('submit', async function(e) {
+    console.log('[RSVP DEBUG] Form submit event fired!');
     e.preventDefault();
+    console.log('[RSVP DEBUG] Prevented default form submission');
     
     const fullName = document.getElementById('fullName').value.trim();
+    console.log('[RSVP DEBUG] Full name entered:', fullName);
     const errorMessage = document.getElementById('errorMessage');
     
     // Clear previous error
@@ -288,7 +409,9 @@ document.getElementById('nameLookupForm').addEventListener('submit', async funct
     
     try {
         // Use smart lookup function to get all matches
+        console.log('[RSVP DEBUG] Calling lookupGuests with:', fullName);
         const guests = await lookupGuests(fullName);
+        console.log('[RSVP DEBUG] Lookup returned', guests ? guests.length : 0, 'guests');
         
         if (!guests || guests.length === 0) {
             errorMessage.textContent = 'Guest not found. Please check your name and try again, or click "Text Me" below for assistance.';
@@ -308,7 +431,9 @@ document.getElementById('nameLookupForm').addEventListener('submit', async funct
         errorMessage.textContent = 'An error occurred. Please try again later.';
         errorMessage.style.display = 'block';
     }
-});
+    });
+    console.log('[RSVP DEBUG] Name lookup form handler attached successfully');
+}
 
 // Store the matched guests for later use
 let matchedGuests = [];
@@ -541,13 +666,23 @@ function updateGuestMock(guestId, updates) {
 }
 
 // Step 2: RSVP Details Form Handler
-document.getElementById('rsvpDetailsForm').addEventListener('submit', async function(e) {
+console.log('[RSVP DEBUG] Attempting to attach RSVP details form handler...');
+const rsvpDetailsForm = document.getElementById('rsvpDetailsForm');
+if (!rsvpDetailsForm) {
+    console.error('[RSVP DEBUG] ERROR: rsvpDetailsForm element not found!');
+} else {
+    console.log('[RSVP DEBUG] rsvpDetailsForm element found, attaching handler...');
+    rsvpDetailsForm.addEventListener('submit', async function(e) {
+    console.log('[RSVP DEBUG] RSVP details form submit event fired!');
     e.preventDefault();
+    console.log('[RSVP DEBUG] Prevented default form submission');
     
     if (!currentGuest) {
+        console.error('[RSVP DEBUG] ERROR: currentGuest is null!');
         alert('Error: Guest information not found. Please start over.');
         return;
     }
+    console.log('[RSVP DEBUG] Current guest:', currentGuest);
     
     const rsvpResponse = document.getElementById('rsvpResponse').value;
     const mealChoice = document.getElementById('mealChoice').value || null;
@@ -570,7 +705,12 @@ document.getElementById('rsvpDetailsForm').addEventListener('submit', async func
                 throw new Error(result.error);
             }
         } else {
-            const { error } = await supabase
+            const updateClient = window.rsvpSupabaseClient || supabaseClient;
+            if (!updateClient) {
+                throw new Error('Supabase client not initialized');
+            }
+            
+            const { error } = await updateClient
                 .from('guests')
                 .update({
                     rsvp: rsvpResponse,
@@ -607,7 +747,12 @@ document.getElementById('rsvpDetailsForm').addEventListener('submit', async func
                     throw new Error(result.error);
                 }
             } else {
-                const { error } = await supabase
+                const updateClient = window.rsvpSupabaseClient || supabaseClient;
+                if (!updateClient) {
+                    throw new Error('Supabase client not initialized');
+                }
+                
+                const { error } = await updateClient
                     .from('guests')
                     .update({
                         rsvp: plusOneRsvpResponse,
@@ -655,10 +800,12 @@ document.getElementById('rsvpDetailsForm').addEventListener('submit', async func
         document.getElementById('successSection').style.display = 'block';
         
     } catch (err) {
-        console.error('Error submitting RSVP:', err);
+        console.error('[RSVP DEBUG] Error submitting RSVP:', err);
         alert('An error occurred while submitting your RSVP. Please try again.');
     }
-});
+    });
+    console.log('[RSVP DEBUG] RSVP details form handler attached successfully');
+}
 
 // Back button handler from RSVP form
 document.getElementById('backBtn').addEventListener('click', function() {
