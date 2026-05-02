@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travel & Stay | Savannah & Sean</title>
+
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💚</text></svg>">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://savandsean.com/travel.html">
+    <meta property="og:title" content="Travel & Stay | Savannah & Sean">
+    <meta property="og:description" content="Hotel room block and travel details for our wedding weekend in Pontiac, Michigan — September 3–6, 2026.">
+    <meta property="og:image" content="https://savandsean.com/media/apppreview.jpeg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://savandsean.com/travel.html">
+    <meta name="twitter:title" content="Travel & Stay | Savannah & Sean">
+    <meta name="twitter:description" content="Hotel room block and travel details for our wedding weekend in Pontiac, Michigan — September 3–6, 2026.">
+    <meta name="twitter:image" content="https://savandsean.com/media/apppreview.jpeg">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="travel-page">
+    <div class="nav-overlay" id="navOverlay"></div>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">Savannah & Sean</div>
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+                <span class="hamburger"></span>
+                <span class="hamburger"></span>
+                <span class="hamburger"></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li class="nav-item"><a href="index.html" class="nav-link">Home</a></li>
+                <li class="nav-item"><a href="ourstory.html" class="nav-link">Our Story</a></li>
+                <li class="nav-item"><a href="photos.html" class="nav-link">Photos</a></li>
+                <li class="nav-item"><a href="coming-soon.html" class="nav-link">Wedding Party</a></li>
+                <li class="nav-item"><a href="qa.html" class="nav-link">Q+A</a></li>
+                <li class="nav-item"><a href="travel.html" class="nav-link active">Travel</a></li>
+                <li class="nav-item"><a href="https://withjoy.com/savannah-s-and-sean/registry" class="nav-link" target="_blank" rel="noopener noreferrer">Registry</a></li>
+                <li class="nav-item"><a href="coming-soon.html" class="nav-link">RSVP</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="travel-section">
+        <div class="travel-section-bg" aria-hidden="true"></div>
+
+        <div class="travel-container">
+            <header class="travel-hero travel-reveal">
+                <p class="travel-eyebrow">Pontiac, Michigan</p>
+                <h1 class="travel-title">Travel <span class="travel-title-amp">&amp;</span> Stay</h1>
+                <div class="travel-rule" role="presentation"></div>
+                <p class="travel-subtitle">Room block, shuttle, and the weekend at a glance</p>
+            </header>
+
+            <section class="travel-dates travel-reveal" aria-labelledby="travel-weekend-heading">
+                <h2 id="travel-weekend-heading" class="travel-dates-kicker">Wedding weekend</h2>
+                <p class="travel-dates-main">Thursday, September 3, 2026 — Sunday, September 6, 2026</p>
+                <p class="travel-event-name">When booking, use the group name <strong>Martinez/Raymor Wedding</strong>.</p>
+            </section>
+
+            <article class="travel-hotel-card travel-reveal" aria-labelledby="marriott-heading">
+                <div class="travel-card-corner" aria-hidden="true"></div>
+                <h2 id="marriott-heading" class="travel-hotel-name">Auburn Hills Marriott Pontiac</h2>
+                <p class="travel-hotel-lede">We have a room block at <strong>$149 USD per night</strong> (plus applicable taxes) for guests celebrating with us.</p>
+
+                <dl class="travel-facts">
+                    <div class="travel-fact">
+                        <dt class="travel-fact-label">To the venue</dt>
+                        <dd class="travel-fact-value"><strong>4 miles</strong> · about <strong>9 minutes</strong> by car</dd>
+                    </div>
+                    <div class="travel-fact">
+                        <dt class="travel-fact-label">Shuttle</dt>
+                        <dd class="travel-fact-value">Included for guests staying at this hotel, to and from the wedding</dd>
+                    </div>
+                    <div class="travel-fact">
+                        <dt class="travel-fact-label">Book by</dt>
+                        <dd class="travel-fact-value"><time datetime="2026-08-14">Friday, August 14, 2026</time></dd>
+                    </div>
+                </dl>
+
+                <div class="travel-book-row">
+                    <a href="https://app.marriott.com/reslink?id=1777398281284&amp;key=GRP&amp;app=resvlink" class="travel-btn" target="_blank" rel="noopener noreferrer">Reserve in the room block</a>
+                </div>
+            </article>
+
+            <p class="travel-more-hotels travel-reveal">We're finalizing a second hotel option for guests who want another choice—details will be posted here soon.</p>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2025 Savannah & Sean. All rights reserved.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const navToggle = document.getElementById('navToggle');
+            const navMenu = document.getElementById('navMenu');
+            const navOverlay = document.getElementById('navOverlay');
+
+            function closeMenu() {
+                if (navToggle) navToggle.classList.remove('active');
+                if (navMenu) navMenu.classList.remove('active');
+                if (navOverlay) navOverlay.classList.remove('active');
+            }
+
+            if (navToggle && navMenu) {
+                navToggle.addEventListener('click', function() {
+                    navToggle.classList.toggle('active');
+                    navMenu.classList.toggle('active');
+                    if (navOverlay) navOverlay.classList.toggle('active');
+                });
+
+                if (navOverlay) {
+                    navOverlay.addEventListener('click', closeMenu);
+                }
+
+                const navLinks = document.querySelectorAll('.nav-link');
+                navLinks.forEach(link => {
+                    link.addEventListener('click', closeMenu);
+                });
+
+                document.addEventListener('click', function(event) {
+                    const isClickInsideNav = navMenu.contains(event.target) || navToggle.contains(event.target);
+                    if (!isClickInsideNav && navMenu.classList.contains('active')) {
+                        closeMenu();
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
