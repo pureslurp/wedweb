@@ -630,6 +630,15 @@ select.form-input {
     font-weight: 500;
 }
 
+.guest-role-hint {
+    font-size: 0.85rem;
+    color: #8b7355;
+    margin: 0 0 0.5rem 0;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
 .guest-details {
     font-size: 0.95rem;
     color: #6a6a6a;

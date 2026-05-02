@@ -4,6 +4,7 @@
       "id": "1",
       "first_name": "Jane",
       "last_name": "Doe",
+      "nickname": "Janie",
       "email": "jane.doe@example.com",
       "address": "123 Main Street, Pontiac, MI 48342",
       "phone": "555-0100",

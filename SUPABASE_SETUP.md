@@ -17,16 +17,26 @@ The table will include these columns:
 - `id` (UUID, Primary Key)
 - `first_name` (Text)
 - `last_name` (Text)
+- `nickname` (Text, optional) — Alternate first name for lookup (e.g. `Bob` for `Robert`). Guests can search with either legal first name or nickname plus last name.
 - `email` (Text)
 - `address` (Text)
 - `phone` (Text)
-- `plus_one_id` (UUID, Foreign Key) - Links to another guest's ID for plus ones
+- `family` (Text, optional) - Same value for everyone on one invitation (e.g. `Smith Family`); lookup shows the whole group. You can still set `plus_one_id` (or CSV plus-one helpers) for someone **outside** that label (e.g. a family member’s guest—everyone in the family group is included, then plus-one links are followed once). Leave `family` empty for solo guests or use only `plus_one_id` for couples.
+- `plus_one_id` (UUID, Foreign Key) - Links to another guest's ID for plus ones (used when `family` is empty)
 - `rsvp` (Text) - 'yes' or 'no'
 - `meal_choice` (Text) - 'chicken', 'beef', 'fish', or 'vegetarian'
 - `song_request` (Text)
 - `dietary_notes` (Text)
+- `general_notes` (Text)
+- `post_rsvp_message` (Text, optional) - Optional note shown after RSVP (not used by the current site JS)
 - `created_at` (Timestamp)
 - `updated_at` (Timestamp)
+
+If you already created `guests` from an older `setup.sql`, run these in the SQL Editor as needed: [`scripts/add_post_rsvp_message.sql`](scripts/add_post_rsvp_message.sql), [`scripts/add_family_column.sql`](scripts/add_family_column.sql), [`scripts/add_nickname_column.sql`](scripts/add_nickname_column.sql).
+
+### Name lookup: typos and nicknames
+
+The RSVP page matches **legal first name + last name** (case-insensitive), or **nickname + last name** when `nickname` is set. If nothing matches, it runs a **fuzzy pass** using [Levenshtein distance](https://en.wikipedia.org/wiki/Levenshtein_distance) on the full string (`First Last` and, if present, `Nickname Last`), keeping matches within **2** edits by default (see `RSVP_FUZZY_MAX_DISTANCE` in [`rsvp.js`](rsvp.js)). That pass loads the guest list once (same as your existing public `SELECT` policy). For stricter control you could lower the threshold or replace this with a Postgres `pg_trgm` RPC later.
 
 ## Step 3: Get Your API Credentials
 
@@ -76,7 +86,10 @@ USING (true);
 You can add guests through:
 1. **Supabase Table Editor** (UI) - Good for small lists
 2. **SQL Insert Statements** - Good for bulk imports
-3. **CSV Import** - Supabase supports CSV imports
+3. **CSV Import** - Supabase supports CSV imports (see [`guests_import_template.csv`](guests_import_template.csv) for recommended column names, including optional `plus_one_first_name` / `plus_one_last_name` helpers)
+4. **`scripts/import_guests.py`** - Repeatable import with service role; see [`scripts/README.md`](scripts/README.md)
+
+Export back to a spreadsheet: Table Editor CSV export, or **`scripts/export_guests.py`** (documented in [`scripts/README.md`](scripts/README.md)).
 
 ### Example SQL Insert:
 ```sql
@@ -103,7 +116,7 @@ When a guest searches for their name, both they and their plus one will appear i
 ## Step 7: Test Your RSVP System
 
 1. Make sure your website is running (GitHub Pages or local server)
-2. Enter a guest's name that you've added to the database
+2. Enter the guest's **first and last name** as stored in the database (case-insensitive), then select the correct person if a plus one is listed
 3. Fill out the RSVP form
 4. Check Supabase Table Editor to verify the data was updated
 

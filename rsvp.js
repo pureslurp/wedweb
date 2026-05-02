@@ -43,14 +43,9 @@ const USE_MOCK_DATA = false; // Set to false when using real Supabase
 
 // Prevent multiple script loads - check if already initialized
 if (window.rsvpSystemInitialized) {
-    console.warn('[RSVP DEBUG] rsvp.js has already been loaded. Skipping re-initialization.');
+    console.warn('rsvp.js has already been loaded. Skipping re-initialization.');
 } else {
     window.rsvpSystemInitialized = true;
-    
-    console.log('[RSVP DEBUG] Script loading...');
-    console.log('[RSVP DEBUG] USE_MOCK_DATA:', USE_MOCK_DATA);
-    console.log('[RSVP DEBUG] window.supabase exists:', typeof window.supabase !== 'undefined');
-    console.log('[RSVP DEBUG] SUPABASE_CONFIG exists:', typeof SUPABASE_CONFIG !== 'undefined');
 
     // Initialize Supabase client (only if not using mock data)
     // Use window object to store client and prevent re-initialization conflicts
@@ -65,19 +60,13 @@ if (window.rsvpSystemInitialized) {
             if (!supabaseClient) {
                 supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
                 window.rsvpSupabaseClient = supabaseClient; // Store in window to prevent conflicts
-                console.log('[RSVP DEBUG] Supabase client initialized successfully');
-            } else {
-                console.log('[RSVP DEBUG] Using existing Supabase client');
             }
         } catch (error) {
-            console.error('[RSVP DEBUG] Error initializing Supabase client:', error);
+            console.error('Error initializing Supabase client:', error);
         }
-    } else {
-        console.warn('[RSVP DEBUG] Supabase not initialized. Check that SUPABASE_CONFIG is defined and Supabase library is loaded.');
+    } else if (!USE_MOCK_DATA) {
+        console.warn('Supabase not initialized. Check that SUPABASE_CONFIG is defined and Supabase library is loaded.');
     }
-    
-    // Use the window-stored client
-    var supabaseClient = window.rsvpSupabaseClient;
 }
 
 // Mock database (for testing)
@@ -102,26 +91,21 @@ if (USE_MOCK_DATA) {
     loadMockData();
 }
 
-// Store current guest data
-let currentGuest = null;
-let currentPlusOne = null;
+// Guests currently being edited in the RSVP form (subset of matchedGuests)
+let currentRsvpGuests = [];
 
-// Helper function to parse full name into first and last name
+// Split a single "full name" field into first + last (first word = first name, rest = last name)
 function parseFullName(fullName) {
-    const nameParts = fullName.trim().split(/\s+/); // Split on whitespace
-    
-    if (nameParts.length === 1) {
-        // Only one name provided
-        return { firstName: nameParts[0], lastName: '' };
-    } else if (nameParts.length === 2) {
-        // First and last name
-        return { firstName: nameParts[0], lastName: nameParts[1] };
-    } else {
-        // Multiple names - assume first word is first name, rest is last name
-        const firstName = nameParts[0];
-        const lastName = nameParts.slice(1).join(' ');
-        return { firstName, lastName };
+    const nameParts = fullName.trim().split(/\s+/);
+    if (nameParts.length === 0) {
+        return { firstName: '', lastName: '' };
     }
+    if (nameParts.length === 1) {
+        return { firstName: nameParts[0], lastName: '' };
+    }
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(' ');
+    return { firstName, lastName };
 }
 
 // Helper function to get plus one for a guest
@@ -129,56 +113,98 @@ function getPlusOne(guestId) {
     return mockDatabase.guests.find(g => g.id === guestId);
 }
 
-// Helper function to find all guests linked to a guest (including themselves and plus ones)
+// Helper function to find all guests linked to a guest (family group and/or plus-one pair)
 function getLinkedGuests(guest) {
-    const linked = [guest];
-    
-    // Add their plus one if they have one
+    const linked = [];
+    const seen = new Set();
+    function add(g) {
+        if (g && !seen.has(g.id)) {
+            seen.add(g.id);
+            linked.push(g);
+        }
+    }
+    add(guest);
+
+    const fam = (guest.family && String(guest.family).trim()) || '';
+    if (fam) {
+        mockDatabase.guests.forEach(function (g) {
+            const gf = (g.family && String(g.family).trim()) || '';
+            if (gf && gf.toLowerCase() === fam.toLowerCase()) {
+                add(g);
+            }
+        });
+        expandPlusOneEdgesMock(linked, add);
+        return linked;
+    }
+
     if (guest.plus_one_id) {
         const plusOne = getPlusOne(guest.plus_one_id);
         if (plusOne && plusOne.id !== guest.id) {
-            linked.push(plusOne);
+            add(plusOne);
         }
     }
-    
-    // Check if anyone else has this guest as their plus one
-    const reverseLink = mockDatabase.guests.find(g => 
-        g.plus_one_id === guest.id && g.id !== guest.id
-    );
-    if (reverseLink && !linked.find(l => l.id === reverseLink.id)) {
-        linked.push(reverseLink);
+
+    const reverseLink = mockDatabase.guests.find(function (g) {
+        return g.plus_one_id === guest.id && g.id !== guest.id;
+    });
+    if (reverseLink) {
+        add(reverseLink);
     }
-    
+
     return linked;
 }
 
-// Mock lookup function for local testing
-function lookupGuestsMock(fullName) {
-    const { firstName, lastName } = parseFullName(fullName);
-    const matchesArray = [];
-    const addedIds = new Set();
-    
-    mockDatabase.guests.forEach(guest => {
-        const matchesFirst = guest.first_name.toLowerCase().includes(firstName.toLowerCase()) ||
-                           firstName.toLowerCase().includes(guest.first_name.toLowerCase());
-        const matchesLast = lastName ? 
-            (guest.last_name.toLowerCase().includes(lastName.toLowerCase()) ||
-             lastName.toLowerCase().includes(guest.last_name.toLowerCase())) : true;
-        
-        if (matchesFirst && matchesLast) {
-            // Get all linked guests (person + their plus one)
-            const linkedGuests = getLinkedGuests(guest);
-            
-            linkedGuests.forEach(linkedGuest => {
-                if (!addedIds.has(linkedGuest.id)) {
-                    addedIds.add(linkedGuest.id);
-                    matchesArray.push(linkedGuest);
-                }
-            });
+// After a family group is loaded, add anyone linked via plus_one (e.g. a guest's date not in `family`)
+function expandPlusOneEdgesMock(linked, add) {
+    const snapshot = linked.slice();
+    snapshot.forEach(function (g) {
+        if (g.plus_one_id) {
+            const plusOne = getPlusOne(g.plus_one_id);
+            if (plusOne) {
+                add(plusOne);
+            }
         }
+        mockDatabase.guests.forEach(function (other) {
+            if (other.plus_one_id === g.id && other.id !== g.id) {
+                add(other);
+            }
+        });
     });
-    
-    return matchesArray;
+}
+
+function exactNameMatchMock(fnLower, lnLower, guest) {
+    var gfn = guest.first_name.trim().toLowerCase();
+    var gln = guest.last_name.trim().toLowerCase();
+    var nick = guest.nickname ? String(guest.nickname).trim().toLowerCase() : '';
+    return (gfn === fnLower && gln === lnLower) || (!!nick && nick === fnLower && gln === lnLower);
+}
+
+// Mock: exact match (legal or nickname + last), else Levenshtein within RSVP_FUZZY_MAX_DISTANCE; then expand linked guests
+function lookupGuestsMock(firstName, lastName) {
+    var fn = (firstName || '').trim().toLowerCase();
+    var ln = (lastName || '').trim().toLowerCase();
+    var seeds = mockDatabase.guests.filter(function (guest) {
+        return exactNameMatchMock(fn, ln, guest);
+    });
+    var usedFuzzy = false;
+    if (seeds.length === 0) {
+        seeds = fuzzyFilterGuests(mockDatabase.guests, firstName, lastName);
+        usedFuzzy = seeds.length > 0;
+    }
+
+    var matchesArray = [];
+    var addedIds = new Set();
+    seeds.forEach(function (guest) {
+        var linkedGuests = getLinkedGuests(guest);
+        linkedGuests.forEach(function (linkedGuest) {
+            if (!addedIds.has(linkedGuest.id)) {
+                addedIds.add(linkedGuest.id);
+                matchesArray.push(linkedGuest);
+            }
+        });
+    });
+
+    return { guests: matchesArray, usedFuzzy: usedFuzzy };
 }
 
 // Helper function to get plus one from Supabase
@@ -194,235 +220,211 @@ async function getPlusOneSupabase(guestId) {
     return data || null;
 }
 
-// Helper function to find all linked guests from Supabase
+// Helper function to find all linked guests from Supabase (same `family` label and/or plus-one pair)
 async function getLinkedGuestsSupabase(guest) {
     const client = window.rsvpSupabaseClient || supabaseClient;
     if (!client) {
-        console.error('[RSVP DEBUG] Supabase client not available in getLinkedGuestsSupabase');
+        console.error('Supabase client not available in getLinkedGuestsSupabase');
         return [guest]; // Return at least the guest itself
     }
-    
-    const linked = [guest];
-    
-    // Add their plus one if they have one
+
+    const linked = [];
+    const seen = new Set();
+    function add(g) {
+        if (g && g.id != null && !seen.has(g.id)) {
+            seen.add(g.id);
+            linked.push(g);
+        }
+    }
+    add(guest);
+
+    const fam = (guest.family && String(guest.family).trim()) || '';
+    if (fam) {
+        const { data: familyMembers, error } = await client
+            .from('guests')
+            .select('*')
+            .eq('family', fam);
+
+        if (error) {
+            console.error('getLinkedGuestsSupabase family query:', error);
+            return linked;
+        }
+        (familyMembers || []).forEach(function (m) {
+            add(m);
+        });
+        await expandPlusOneEdgesSupabase(client, linked, add);
+        return linked;
+    }
+
     if (guest.plus_one_id) {
         const plusOne = await getPlusOneSupabase(guest.plus_one_id);
         if (plusOne && plusOne.id !== guest.id) {
-            linked.push(plusOne);
+            add(plusOne);
         }
     }
-    
-    // Check if anyone else has this guest as their plus one
+
     const { data: reverseLinks } = await client
         .from('guests')
         .select('*')
         .eq('plus_one_id', guest.id);
-    
+
     if (reverseLinks && reverseLinks.length > 0) {
-        reverseLinks.forEach(reverseLink => {
-            if (reverseLink.id !== guest.id && !linked.find(l => l.id === reverseLink.id)) {
-                linked.push(reverseLink);
-            }
+        reverseLinks.forEach(function (reverseLink) {
+            add(reverseLink);
         });
     }
-    
+
     return linked;
 }
 
-// Smart lookup function that returns all potential matches (Supabase version)
-async function lookupGuestsSupabase(fullName) {
-    // Use window-stored client if available, fall back to local variable
-    const client = window.rsvpSupabaseClient || supabaseClient;
-    
-    if (!client) {
-        const errorMsg = 'Supabase client not initialized. Please refresh the page.';
-        console.error('[RSVP DEBUG]', errorMsg);
-        throw new Error(errorMsg);
-    }
-    
-    // First, test if we can query the database at all
-    console.log('[RSVP DEBUG] Testing database connection...');
-    const { data: testData, error: testError, count } = await client
-        .from('guests')
-        .select('*', { count: 'exact' })
-        .limit(5);
-    
-    if (testError) {
-        console.error('[RSVP DEBUG] Database connection error:', testError);
-        
-        // Check if it's an RLS/permission error
-        if (testError.code === 'PGRST301' || testError.message.includes('permission') || testError.message.includes('policy')) {
-            const rlsErrorMsg = 'Database query blocked. This may be a Row Level Security (RLS) issue. Please check your Supabase RLS policies allow public SELECT access.';
-            console.error('[RSVP DEBUG]', rlsErrorMsg);
-            throw new Error(rlsErrorMsg);
+// For each guest already in `linked`, add their plus_one and anyone who lists them as plus_one
+async function expandPlusOneEdgesSupabase(client, linked, add) {
+    const snapshot = linked.slice();
+    for (let i = 0; i < snapshot.length; i++) {
+        const g = snapshot[i];
+        if (g.plus_one_id) {
+            const plusOne = await getPlusOneSupabase(g.plus_one_id);
+            if (plusOne) {
+                add(plusOne);
+            }
         }
-        
-        throw testError;
-    }
-    
-    // Warn if database is empty (might indicate RLS issue)
-    if (count === 0) {
-        console.warn('[RSVP DEBUG] Database test returned 0 guests. If you expect data, this may indicate an RLS policy issue.');
-    }
-    
-    console.log('[RSVP DEBUG] Database test - Total guests in DB:', count, 'Sample data:', testData);
-    
-    const { firstName, lastName } = parseFullName(fullName);
-    console.log('[RSVP DEBUG] Parsed name - firstName:', firstName, 'lastName:', lastName);
-    const allMatches = new Set(); // Use Set to avoid duplicates
-    const matchesArray = [];
-    const initialMatches = [];
-    
-    // Strategy 1: Try exact match with parsed first and last name
-    console.log('[RSVP DEBUG] Strategy 1: Querying for exact match...');
-    let { data: data1, error: error1 } = await client
-        .from('guests')
-        .select('*')
-        .ilike('first_name', firstName);
-    
-    if (lastName) {
-        // If we have a last name, filter by it too
-        const { data: data1b, error: error1b } = await client
+        const { data: reverseLinks } = await client
             .from('guests')
             .select('*')
-            .ilike('first_name', firstName)
-            .ilike('last_name', lastName);
-        data1 = data1b;
-        error1 = error1b;
-    }
-    
-    if (error1) {
-        console.error('[RSVP DEBUG] Strategy 1 error:', error1);
-    } else {
-        console.log('[RSVP DEBUG] Strategy 1 returned', data1 ? data1.length : 0, 'guests');
-    }
-    
-    if (data1 && data1.length > 0) {
-        initialMatches.push(...data1);
-    }
-    
-    // Strategy 2: If there's a last name, try partial matches
-    if (lastName) {
-        console.log('[RSVP DEBUG] Strategy 2: Querying for partial match...');
-        const { data: data2, error: error2 } = await client
-            .from('guests')
-            .select('*')
-            .ilike('first_name', `${firstName}%`)
-            .ilike('last_name', `${lastName}%`);
-        
-        if (error2) {
-            console.error('[RSVP DEBUG] Strategy 2 error:', error2);
-        } else {
-            console.log('[RSVP DEBUG] Strategy 2 returned', data2 ? data2.length : 0, 'guests');
-        }
-        
-        if (data2 && data2.length > 0) {
-            data2.forEach(guest => {
-                if (!initialMatches.find(g => g.id === guest.id)) {
-                    initialMatches.push(guest);
-                }
+            .eq('plus_one_id', g.id);
+        if (reverseLinks && reverseLinks.length > 0) {
+            reverseLinks.forEach(function (r) {
+                add(r);
             });
         }
     }
-    
-    // Strategy 3: Try searching across both name fields
-    console.log('[RSVP DEBUG] Strategy 3: Querying with OR pattern...');
-    const { data: data3, error: error3 } = await client
+}
+
+// Lookup: exact ilike on first+last, plus nickname+last if column exists; else fuzzy (Levenshtein) on full guest list
+async function lookupGuestsSupabase(firstName, lastName) {
+    var client = window.rsvpSupabaseClient || supabaseClient;
+
+    if (!client) {
+        throw new Error('Supabase client not initialized. Please refresh the page.');
+    }
+
+    var fn = firstName.trim();
+    var ln = lastName.trim();
+
+    var byLegal = [];
+    var res1 = await client
         .from('guests')
         .select('*')
-        .or(`first_name.ilike.%${firstName}%,last_name.ilike.%${firstName}%`);
-    
-    if (error3) {
-        console.error('[RSVP DEBUG] Strategy 3 error:', error3);
+        .ilike('first_name', fn)
+        .ilike('last_name', ln);
+
+    if (res1.error) {
+        if (res1.error.code === 'PGRST301' || (res1.error.message && (res1.error.message.includes('permission') || res1.error.message.includes('policy')))) {
+            throw new Error('Database query blocked. This may be a Row Level Security (RLS) issue. Please check your Supabase RLS policies allow public SELECT access.');
+        }
+        throw res1.error;
+    }
+    byLegal = res1.data || [];
+
+    var byNick = [];
+    var res2 = await client
+        .from('guests')
+        .select('*')
+        .not('nickname', 'is', null)
+        .neq('nickname', '')
+        .ilike('nickname', fn)
+        .ilike('last_name', ln);
+
+    if (res2.error) {
+        console.warn('RSVP: nickname query failed (add scripts/add_nickname_column.sql if the column is missing):', res2.error.message || res2.error);
     } else {
-        console.log('[RSVP DEBUG] Strategy 3 returned', data3 ? data3.length : 0, 'guests');
+        byNick = res2.data || [];
     }
-    
-    if (data3 && data3.length > 0) {
-        data3.forEach(guest => {
-            // Only add if it seems relevant
-            const guestFullName = `${guest.first_name} ${guest.last_name}`.toLowerCase();
-            if (guestFullName.includes(firstName.toLowerCase()) || 
-                (lastName && guestFullName.includes(lastName.toLowerCase()))) {
-                if (!initialMatches.find(g => g.id === guest.id)) {
-                    initialMatches.push(guest);
-                }
-            }
-        });
+
+    var byId = new Map();
+    byLegal.forEach(function (g) {
+        byId.set(g.id, g);
+    });
+    byNick.forEach(function (g) {
+        byId.set(g.id, g);
+    });
+    var initialMatches = Array.from(byId.values());
+    var usedFuzzy = false;
+
+    if (initialMatches.length === 0) {
+        var resAll = await client.from('guests').select('*');
+        if (resAll.error) {
+            throw resAll.error;
+        }
+        initialMatches = fuzzyFilterGuests(resAll.data || [], fn, ln);
+        usedFuzzy = initialMatches.length > 0;
     }
-    
-    // Now fetch linked guests (plus ones) for each match
-    for (const guest of initialMatches) {
-        const linkedGuests = await getLinkedGuestsSupabase(guest);
-        
-        linkedGuests.forEach(linkedGuest => {
-            if (!allMatches.has(linkedGuest.id)) {
-                allMatches.add(linkedGuest.id);
+
+    var seen = new Set();
+    var matchesArray = [];
+
+    for (var i = 0; i < initialMatches.length; i++) {
+        var guest = initialMatches[i];
+        var linkedGuests = await getLinkedGuestsSupabase(guest);
+        linkedGuests.forEach(function (linkedGuest) {
+            if (!seen.has(linkedGuest.id)) {
+                seen.add(linkedGuest.id);
                 matchesArray.push(linkedGuest);
             }
         });
     }
-    
-    return matchesArray;
+
+    return { guests: matchesArray, usedFuzzy: usedFuzzy };
 }
 
-// Unified lookup function
-async function lookupGuests(fullName) {
-    console.log('[RSVP DEBUG] lookupGuests called, USE_MOCK_DATA:', USE_MOCK_DATA);
+// Unified lookup — returns { guests, usedFuzzy }
+async function lookupGuests(firstName, lastName) {
     if (USE_MOCK_DATA) {
-        console.log('[RSVP DEBUG] Using mock data lookup');
-        return lookupGuestsMock(fullName);
-    } else {
-        console.log('[RSVP DEBUG] Using Supabase lookup, supabase client:', supabaseClient ? 'initialized' : 'null');
-        if (!supabaseClient) {
-            throw new Error('Supabase client not initialized');
-        }
-        return await lookupGuestsSupabase(fullName);
+        return lookupGuestsMock(firstName, lastName);
     }
+    if (!supabaseClient) {
+        throw new Error('Supabase client not initialized');
+    }
+    return await lookupGuestsSupabase(firstName, lastName);
 }
 
 // Step 1: Name Lookup Form Handler
-console.log('[RSVP DEBUG] Attempting to attach name lookup form handler...');
 const nameLookupForm = document.getElementById('nameLookupForm');
-if (!nameLookupForm) {
-    console.error('[RSVP DEBUG] ERROR: nameLookupForm element not found!');
-} else {
-    console.log('[RSVP DEBUG] nameLookupForm element found, attaching handler...');
+if (nameLookupForm) {
     nameLookupForm.addEventListener('submit', async function(e) {
-    console.log('[RSVP DEBUG] Form submit event fired!');
     e.preventDefault();
-    console.log('[RSVP DEBUG] Prevented default form submission');
     
     const fullName = document.getElementById('fullName').value.trim();
-    console.log('[RSVP DEBUG] Full name entered:', fullName);
     const errorMessage = document.getElementById('errorMessage');
     
-    // Clear previous error
     errorMessage.textContent = '';
     errorMessage.style.display = 'none';
     
     if (!fullName) {
-        errorMessage.textContent = 'Please enter your full name.';
+        errorMessage.textContent = 'Please enter your name.';
+        errorMessage.style.display = 'block';
+        return;
+    }
+    
+    const { firstName, lastName } = parseFullName(fullName);
+    if (!firstName || !lastName) {
+        errorMessage.textContent = 'Please enter your full name (e.g. Jane Doe).';
         errorMessage.style.display = 'block';
         return;
     }
     
     try {
-        // Use smart lookup function to get all matches
-        console.log('[RSVP DEBUG] Calling lookupGuests with:', fullName);
-        const guests = await lookupGuests(fullName);
-        console.log('[RSVP DEBUG] Lookup returned', guests ? guests.length : 0, 'guests');
-        
+        var lookupResult = await lookupGuests(firstName, lastName);
+        var guests = lookupResult.guests;
+
         if (!guests || guests.length === 0) {
             errorMessage.textContent = 'Guest not found. Please check your name and try again, or click "Text Me" below for assistance.';
             errorMessage.style.display = 'block';
             return;
         }
+
+        displayGuestList(guests, { usedFuzzy: lookupResult.usedFuzzy });
         
-        // Display guest selection list
-        displayGuestList(guests);
-        
-        // Show guest selection, hide name lookup
         document.getElementById('nameLookupSection').style.display = 'none';
         document.getElementById('guestSelectionSection').style.display = 'block';
         
@@ -432,400 +434,452 @@ if (!nameLookupForm) {
         errorMessage.style.display = 'block';
     }
     });
-    console.log('[RSVP DEBUG] Name lookup form handler attached successfully');
 }
 
 // Store the matched guests for later use
 let matchedGuests = [];
-let selectedGuests = new Set(); // Track selected guest IDs
+/** @type {Set<string>} */
+let selectedGuestIds = new Set();
 
-// Display list of matching guests
-function displayGuestList(guests) {
-    matchedGuests = guests; // Store for the continue button
-    selectedGuests.clear(); // Reset selection
+// Escape text for safe insertion into HTML (e.g. family labels from DB)
+function escapeHtml(text) {
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+// Typo-tolerant name matching (Levenshtein on full "First Last" vs DB, and vs "Nickname Last" if set)
+var RSVP_FUZZY_MAX_DISTANCE = 2;
+
+function levenshtein(a, b) {
+    a = (a || '').toLowerCase();
+    b = (b || '').toLowerCase();
+    var m = a.length;
+    var n = b.length;
+    var d = [];
+    var i;
+    var j;
+    for (i = 0; i <= m; i++) {
+        d[i] = [];
+        d[i][0] = i;
+    }
+    for (j = 0; j <= n; j++) {
+        d[0][j] = j;
+    }
+    for (i = 1; i <= m; i++) {
+        for (j = 1; j <= n; j++) {
+            var cost = a.charAt(i - 1) === b.charAt(j - 1) ? 0 : 1;
+            d[i][j] = Math.min(
+                d[i - 1][j] + 1,
+                d[i][j - 1] + 1,
+                d[i - 1][j - 1] + cost
+            );
+        }
+    }
+    return d[m][n];
+}
+
+function normalizeNamePart(s) {
+    return String(s || '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, ' ');
+}
+
+/** Smaller = closer match; compares typed "first last" to legal name and to "nickname last". */
+function fullNameDistance(queryFirst, queryLast, guest) {
+    var fn = normalizeNamePart(guest.first_name);
+    var ln = normalizeNamePart(guest.last_name);
+    var nick = guest.nickname ? normalizeNamePart(guest.nickname) : '';
+    var q = normalizeNamePart(queryFirst) + ' ' + normalizeNamePart(queryLast);
+    var legal = fn + ' ' + ln;
+    var best = levenshtein(q, legal);
+    if (nick) {
+        best = Math.min(best, levenshtein(q, nick + ' ' + ln));
+    }
+    return best;
+}
+
+function fuzzyFilterGuests(guestRows, queryFirst, queryLast) {
+    var scored = guestRows.map(function (g) {
+        return { g: g, d: fullNameDistance(queryFirst, queryLast, g) };
+    });
+    scored = scored.filter(function (x) {
+        return x.d <= RSVP_FUZZY_MAX_DISTANCE;
+    });
+    scored.sort(function (a, b) {
+        return a.d - b.d;
+    });
+    return scored.map(function (x) {
+        return x.g;
+    });
+}
+
+function findGuestBlock(container, guestId) {
+    return Array.from(container.querySelectorAll('.rsvp-guest-block')).find(function (b) {
+        return String(b.dataset.guestId) === String(guestId);
+    });
+}
+
+function buildGuestBlockHTML(guest) {
+    const fn = escapeHtml(guest.first_name);
+    const ln = escapeHtml(guest.last_name);
+    const email = guest.email ? escapeHtml(guest.email) : 'Not provided';
+    const phone = guest.phone ? escapeHtml(guest.phone) : 'Not provided';
+    const address = guest.address ? escapeHtml(guest.address) : 'Not provided';
+    return (
+        '<div class="guest-section rsvp-guest-block" data-guest-id="' + escapeHtml(String(guest.id)) + '">' +
+            '<h3 class="section-title">' + fn + ' ' + ln + '</h3>' +
+            '<div class="guest-info">' +
+                '<p><strong>Email:</strong> ' + email + '</p>' +
+                '<p><strong>Phone:</strong> ' + phone + '</p>' +
+                '<p><strong>Address:</strong> ' + address + '</p>' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label class="form-label">Will ' + fn + ' be attending?</label>' +
+                '<select class="form-input rsvp-guest-response" required>' +
+                    '<option value="">Please select...</option>' +
+                    '<option value="yes">Yes, will attend</option>' +
+                    '<option value="no">No, cannot attend</option>' +
+                '</select>' +
+            '</div>' +
+            '<div class="rsvp-attending-fields" style="display: none;">' +
+                '<div class="form-group rsvp-meal-choice-group">' +
+                    '<label class="form-label">Meal choice</label>' +
+                    '<select class="form-input rsvp-meal-choice">' +
+                        '<option value="">Please select...</option>' +
+                        '<option value="chicken">Chicken</option>' +
+                        '<option value="beef">Beef</option>' +
+                        '<option value="fish">Fish</option>' +
+                        '<option value="vegetarian">Vegetarian</option>' +
+                    '</select>' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label class="form-label">Dietary restrictions (optional)</label>' +
+                    '<textarea class="form-input form-textarea rsvp-dietary-notes" rows="3" placeholder="Allergies or dietary restrictions"></textarea>' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label class="form-label">General notes (optional)</label>' +
+                    '<textarea class="form-input form-textarea rsvp-general-notes" rows="3" placeholder="Anything else you would like to share"></textarea>' +
+                '</div>' +
+            '</div>' +
+        '</div>'
+    );
+}
+
+function showAttendingFieldsForBlock(blockEl, show) {
+    const wrap = blockEl.querySelector('.rsvp-attending-fields');
+    const meal = blockEl.querySelector('.rsvp-meal-choice');
+    if (!wrap || !meal) return;
+    wrap.style.display = show ? 'block' : 'none';
+    meal.required = !!show;
+    if (!show) {
+        meal.value = '';
+    }
+}
+
+function updateSongGroupVisibility() {
+    const form = document.getElementById('rsvpDetailsForm');
+    const grp = document.getElementById('songRequestGroup');
+    if (!form || !grp) return;
+    const anyYes = Array.from(form.querySelectorAll('.rsvp-guest-response')).some(function (el) {
+        return el.value === 'yes';
+    });
+    grp.style.display = anyYes ? 'block' : 'none';
+}
+
+// Display list of matching guests (one card per person; multi-select)
+function displayGuestList(guests, options) {
+    options = options || {};
+    var usedFuzzy = !!options.usedFuzzy;
+    var sub = document.getElementById('guestSelectionSubtitle');
+    if (sub) {
+        sub.textContent = usedFuzzy
+            ? 'These names are close to what you typed — select everyone on this invitation.'
+            : 'We found the following people on this invitation:';
+    }
+
+    matchedGuests = guests;
+    selectedGuestIds = new Set();
     const guestList = document.getElementById('guestList');
-    guestList.innerHTML = ''; // Clear previous results
-    
-    guests.forEach(guest => {
+    guestList.innerHTML = '';
+
+    guests.forEach(function (guest) {
         const guestCard = document.createElement('div');
         guestCard.className = 'guest-card-display';
-        guestCard.dataset.guestId = guest.id; // Store guest ID for selection
-        
-        // Check if guest has a plus one
-        let plusOneInfo = '';
-        if (guest.plus_one_id) {
-            // Find the plus one in the matched guests list
-            const plusOne = matchedGuests.find(g => g.id === guest.plus_one_id);
-            if (plusOne) {
-                plusOneInfo = `<p class="guest-plus-one">Plus One: ${plusOne.first_name} ${plusOne.last_name}</p>`;
-            }
+        guestCard.dataset.guestId = guest.id;
+        guestCard.setAttribute('role', 'button');
+        guestCard.setAttribute('aria-pressed', 'false');
+        guestCard.tabIndex = 0;
+
+        const famLabel = (guest.family && String(guest.family).trim()) || '';
+        let roleHint = '';
+        if (famLabel) {
+            roleHint = '<p class="guest-role-hint">' + escapeHtml(famLabel) + '</p>';
         }
-        
-        guestCard.innerHTML = `
-            <h3 class="guest-name">${guest.first_name} ${guest.last_name}</h3>
-            <p class="guest-details">${guest.email || ''}</p>
-            <p class="guest-details">${guest.address || ''}</p>
-            ${plusOneInfo}
-        `;
-        
-        // Add click handler to toggle selection
-        guestCard.addEventListener('click', function() {
-            toggleGuestSelection(guest.id, guestCard);
+        const emailLine = guest.email ? '<p class="guest-details">' + escapeHtml(guest.email) + '</p>' : '';
+        const addressLine = guest.address ? '<p class="guest-details">' + escapeHtml(guest.address) + '</p>' : '';
+
+        guestCard.innerHTML =
+            '<h3 class="guest-name">' + escapeHtml(guest.first_name) + ' ' + escapeHtml(guest.last_name) + '</h3>' +
+            roleHint +
+            emailLine +
+            addressLine;
+
+        guestCard.addEventListener('click', function () {
+            toggleGuestCard(guest.id);
         });
-        
+        guestCard.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Enter' || ev.key === ' ') {
+                ev.preventDefault();
+                toggleGuestCard(guest.id);
+            }
+        });
+
         guestList.appendChild(guestCard);
     });
-    
-    // Disable continue button initially
+
+    document.querySelectorAll('.guest-card-display').forEach(function (card) {
+        card.classList.remove('selected');
+        card.setAttribute('aria-pressed', 'false');
+    });
     updateContinueButton();
 }
 
-// Toggle guest selection
-function toggleGuestSelection(guestId, cardElement) {
-    if (selectedGuests.has(guestId)) {
-        selectedGuests.delete(guestId);
-        cardElement.classList.remove('selected');
+function toggleGuestCard(guestId) {
+    const id = String(guestId);
+    if (selectedGuestIds.has(id)) {
+        selectedGuestIds.delete(id);
     } else {
-        selectedGuests.add(guestId);
-        cardElement.classList.add('selected');
+        selectedGuestIds.add(id);
     }
+    document.querySelectorAll('.guest-card-display').forEach(function (card) {
+        const cid = String(card.dataset.guestId);
+        const on = selectedGuestIds.has(cid);
+        card.classList.toggle('selected', on);
+        card.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
     updateContinueButton();
 }
 
-// Update continue button state
 function updateContinueButton() {
     const continueBtn = document.getElementById('continueToRsvpBtn');
-    if (selectedGuests.size > 0) {
-        continueBtn.disabled = false;
-    } else {
-        continueBtn.disabled = true;
+    if (continueBtn) {
+        continueBtn.disabled = selectedGuestIds.size === 0;
     }
 }
 
-// Continue button handler from guest selection
-document.getElementById('continueToRsvpBtn').addEventListener('click', async function() {
-    if (selectedGuests.size > 0) {
-        // Get the first selected guest
-        const selectedGuestId = Array.from(selectedGuests)[0];
-        const guest = matchedGuests.find(g => g.id === selectedGuestId);
-        
-        if (guest) {
-            await selectGuest(guest);
-        }
-    }
-});
+function buildRsvpGreeting(names) {
+    if (names.length === 0) return '';
+    if (names.length === 1) return 'RSVP for ' + names[0];
+    if (names.length === 2) return 'RSVP for ' + names[0] + ' & ' + names[1];
+    return 'RSVP for ' + names.slice(0, -1).join(', ') + ', and ' + names[names.length - 1];
+}
 
-// Handle guest selection
-async function selectGuest(guest) {
-    // Store guest data
-    currentGuest = guest;
-    currentPlusOne = null;
-    
-    // Check if guest has a plus one
-    if (guest.plus_one_id) {
-        if (USE_MOCK_DATA) {
-            currentPlusOne = getPlusOne(guest.plus_one_id);
-        } else {
-            currentPlusOne = await getPlusOneSupabase(guest.plus_one_id);
-        }
-    }
-    
-    // Build greeting
-    let greeting = currentPlusOne 
-        ? `RSVP for ${guest.first_name} ${guest.last_name} & ${currentPlusOne.first_name} ${currentPlusOne.last_name}`
-        : `RSVP for ${guest.first_name} ${guest.last_name}`;
-    
-    // Populate primary guest info
-    document.getElementById('guestGreeting').textContent = greeting;
-    document.getElementById('primaryGuestName').textContent = `${guest.first_name} ${guest.last_name}`;
-    document.getElementById('displayEmail').textContent = guest.email || 'Not provided';
-    document.getElementById('displayPhone').textContent = guest.phone || 'Not provided';
-    document.getElementById('displayAddress').textContent = guest.address || 'Not provided';
-    
-    // Pre-fill primary guest data if they've already RSVP'd
-    if (guest.rsvp) {
-        document.getElementById('rsvpResponse').value = guest.rsvp;
-        if (guest.rsvp === 'yes') {
-            showAttendingFields('primary');
-            if (guest.meal_choice) document.getElementById('mealChoice').value = guest.meal_choice;
-        }
-    } else {
-        document.getElementById('rsvpResponse').value = '';
-    }
-    if (guest.song_request) document.getElementById('songRequest').value = guest.song_request;
-    if (guest.dietary_notes) document.getElementById('dietaryNotes').value = guest.dietary_notes;
-    if (guest.general_notes) document.getElementById('generalNotes').value = guest.general_notes;
-    
-    // Handle plus one section
-    if (currentPlusOne) {
-        document.getElementById('plusOneSection').style.display = 'block';
-        document.getElementById('plusOneName').textContent = `${currentPlusOne.first_name} ${currentPlusOne.last_name}`;
-        document.getElementById('displayPlusOneEmail').textContent = currentPlusOne.email || 'Not provided';
-        document.getElementById('displayPlusOnePhone').textContent = currentPlusOne.phone || 'Not provided';
-        
-        // Pre-fill plus one data if they've already RSVP'd
-        if (currentPlusOne.rsvp) {
-            document.getElementById('plusOneRsvpResponse').value = currentPlusOne.rsvp;
-            if (currentPlusOne.rsvp === 'yes') {
-                showAttendingFields('plusOne');
-                if (currentPlusOne.meal_choice) document.getElementById('plusOneMealChoice').value = currentPlusOne.meal_choice;
+async function openRsvpFormForSelectedGuests() {
+    if (selectedGuestIds.size === 0) return;
+
+    const selected = matchedGuests.filter(function (g) {
+        return selectedGuestIds.has(String(g.id));
+    });
+    currentRsvpGuests = selected;
+
+    const names = selected.map(function (g) {
+        return g.first_name + ' ' + g.last_name;
+    });
+    document.getElementById('guestGreeting').textContent = buildRsvpGreeting(names);
+
+    const container = document.getElementById('rsvpBlocksContainer');
+    container.innerHTML = selected.map(buildGuestBlockHTML).join('');
+
+    selected.forEach(function (g) {
+        const block = findGuestBlock(container, g.id);
+        if (!block) return;
+        const sel = block.querySelector('.rsvp-guest-response');
+        if (g.rsvp) {
+            sel.value = g.rsvp;
+            if (g.rsvp === 'yes') {
+                showAttendingFieldsForBlock(block, true);
+                const meal = block.querySelector('.rsvp-meal-choice');
+                if (meal && g.meal_choice) meal.value = g.meal_choice;
             }
-        } else {
-            document.getElementById('plusOneRsvpResponse').value = '';
         }
-        if (currentPlusOne.dietary_notes) document.getElementById('plusOneDietaryNotes').value = currentPlusOne.dietary_notes;
-        if (currentPlusOne.general_notes) document.getElementById('plusOneGeneralNotes').value = currentPlusOne.general_notes;
-        // Use shared song request
-        if (!guest.song_request && currentPlusOne.song_request) {
-            document.getElementById('songRequest').value = currentPlusOne.song_request;
+        const diet = block.querySelector('.rsvp-dietary-notes');
+        if (diet && g.dietary_notes) diet.value = g.dietary_notes;
+        const gen = block.querySelector('.rsvp-general-notes');
+        if (gen && g.general_notes) gen.value = g.general_notes;
+    });
+
+    const songInput = document.getElementById('songRequest');
+    songInput.value = '';
+    for (let i = 0; i < selected.length; i++) {
+        if (selected[i].song_request) {
+            songInput.value = selected[i].song_request;
+            break;
         }
-    } else {
-        document.getElementById('plusOneSection').style.display = 'none';
     }
-    
-    // Show RSVP form, hide guest selection
+
+    updateSongGroupVisibility();
     document.getElementById('guestSelectionSection').style.display = 'none';
     document.getElementById('rsvpFormSection').style.display = 'block';
 }
 
-// Handle RSVP response change - show/hide attending fields
-document.getElementById('rsvpResponse').addEventListener('change', function() {
-    if (this.value === 'yes') {
-        showAttendingFields('primary');
-    } else {
-        hideAttendingFields('primary');
-    }
-});
-
-// Handle Plus One RSVP response change
-document.getElementById('plusOneRsvpResponse').addEventListener('change', function() {
-    if (this.value === 'yes') {
-        showAttendingFields('plusOne');
-    } else {
-        hideAttendingFields('plusOne');
-    }
-});
-
-function showAttendingFields(type) {
-    if (type === 'primary') {
-        document.getElementById('mealChoiceGroup').style.display = 'block';
-        document.getElementById('dietaryNotesGroup').style.display = 'block';
-        document.getElementById('generalNotesGroup').style.display = 'block';
-        document.getElementById('mealChoice').required = true;
-        // Show song request if either person is attending
-        document.getElementById('songRequestGroup').style.display = 'block';
-    } else if (type === 'plusOne') {
-        document.getElementById('plusOneMealChoiceGroup').style.display = 'block';
-        document.getElementById('plusOneDietaryNotesGroup').style.display = 'block';
-        document.getElementById('plusOneGeneralNotesGroup').style.display = 'block';
-        document.getElementById('plusOneMealChoice').required = true;
-        // Show song request if either person is attending
-        document.getElementById('songRequestGroup').style.display = 'block';
-    }
+const continueToRsvpBtn = document.getElementById('continueToRsvpBtn');
+if (continueToRsvpBtn) {
+    continueToRsvpBtn.addEventListener('click', function () {
+        openRsvpFormForSelectedGuests();
+    });
 }
 
-function hideAttendingFields(type) {
-    if (type === 'primary') {
-        document.getElementById('mealChoiceGroup').style.display = 'none';
-        document.getElementById('dietaryNotesGroup').style.display = 'none';
-        document.getElementById('generalNotesGroup').style.display = 'none';
-        document.getElementById('mealChoice').required = false;
-        
-        // Hide song request only if plus one is also not attending
-        const plusOneRsvp = document.getElementById('plusOneRsvpResponse').value;
-        if (plusOneRsvp !== 'yes') {
-            document.getElementById('songRequestGroup').style.display = 'none';
-        }
-    } else if (type === 'plusOne') {
-        document.getElementById('plusOneMealChoiceGroup').style.display = 'none';
-        document.getElementById('plusOneDietaryNotesGroup').style.display = 'none';
-        document.getElementById('plusOneGeneralNotesGroup').style.display = 'none';
-        document.getElementById('plusOneMealChoice').required = false;
-        
-        // Hide song request only if primary is also not attending
-        const primaryRsvp = document.getElementById('rsvpResponse').value;
-        if (primaryRsvp !== 'yes') {
-            document.getElementById('songRequestGroup').style.display = 'none';
-        }
-    }
-}
-
-// Mock update function
+// Mock update function (used when USE_MOCK_DATA is true)
 function updateGuestMock(guestId, updates) {
-    const guestIndex = mockDatabase.guests.findIndex(g => g.id === guestId);
+    const guestIndex = mockDatabase.guests.findIndex(function (g) {
+        return String(g.id) === String(guestId);
+    });
     if (guestIndex !== -1) {
         mockDatabase.guests[guestIndex] = {
             ...mockDatabase.guests[guestIndex],
             ...updates,
             updated_at: new Date().toISOString()
         };
-        console.log('Mock database updated:', mockDatabase.guests[guestIndex]);
         return { success: true };
     }
     return { success: false, error: 'Guest not found' };
 }
 
-// Step 2: RSVP Details Form Handler
-console.log('[RSVP DEBUG] Attempting to attach RSVP details form handler...');
 const rsvpDetailsForm = document.getElementById('rsvpDetailsForm');
-if (!rsvpDetailsForm) {
-    console.error('[RSVP DEBUG] ERROR: rsvpDetailsForm element not found!');
-} else {
-    console.log('[RSVP DEBUG] rsvpDetailsForm element found, attaching handler...');
-    rsvpDetailsForm.addEventListener('submit', async function(e) {
-    console.log('[RSVP DEBUG] RSVP details form submit event fired!');
-    e.preventDefault();
-    console.log('[RSVP DEBUG] Prevented default form submission');
-    
-    if (!currentGuest) {
-        console.error('[RSVP DEBUG] ERROR: currentGuest is null!');
-        alert('Error: Guest information not found. Please start over.');
-        return;
-    }
-    console.log('[RSVP DEBUG] Current guest:', currentGuest);
-    
-    const rsvpResponse = document.getElementById('rsvpResponse').value;
-    const mealChoice = document.getElementById('mealChoice').value || null;
-    const songRequest = document.getElementById('songRequest').value.trim() || null;
-    const dietaryNotes = document.getElementById('dietaryNotes').value.trim() || null;
-    const generalNotes = document.getElementById('generalNotes').value.trim() || null;
-    
-    try {
-        // Update primary guest
-        if (USE_MOCK_DATA) {
-            const result = updateGuestMock(currentGuest.id, {
-                rsvp: rsvpResponse,
-                meal_choice: mealChoice,
-                song_request: songRequest,
-                dietary_notes: dietaryNotes,
-                general_notes: generalNotes
-            });
-            
-            if (!result.success) {
-                throw new Error(result.error);
-            }
-        } else {
-            const updateClient = window.rsvpSupabaseClient || supabaseClient;
-            if (!updateClient) {
-                throw new Error('Supabase client not initialized');
-            }
-            
-            const { error } = await updateClient
-                .from('guests')
-                .update({
-                    rsvp: rsvpResponse,
-                    meal_choice: mealChoice,
-                    song_request: songRequest,
-                    dietary_notes: dietaryNotes,
-                    general_notes: generalNotes,
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', currentGuest.id);
-            
-            if (error) {
-                throw error;
+if (rsvpDetailsForm) {
+    rsvpDetailsForm.addEventListener('change', function (e) {
+        const t = e.target;
+        if (t && t.classList && t.classList.contains('rsvp-guest-response')) {
+            const block = t.closest('.rsvp-guest-block');
+            if (block) {
+                if (t.value === 'yes') {
+                    showAttendingFieldsForBlock(block, true);
+                } else {
+                    showAttendingFieldsForBlock(block, false);
+                }
+                updateSongGroupVisibility();
             }
         }
-        
-        // Update plus one if they exist
-        if (currentPlusOne) {
-            const plusOneRsvpResponse = document.getElementById('plusOneRsvpResponse').value;
-            const plusOneMealChoice = document.getElementById('plusOneMealChoice').value || null;
-            const plusOneDietaryNotes = document.getElementById('plusOneDietaryNotes').value.trim() || null;
-            const plusOneGeneralNotes = document.getElementById('plusOneGeneralNotes').value.trim() || null;
-            
-            if (USE_MOCK_DATA) {
-                const result = updateGuestMock(currentPlusOne.id, {
-                    rsvp: plusOneRsvpResponse,
-                    meal_choice: plusOneMealChoice,
-                    song_request: songRequest, // Share song request
-                    dietary_notes: plusOneDietaryNotes,
-                    general_notes: plusOneGeneralNotes
-                });
-                
-                if (!result.success) {
-                    throw new Error(result.error);
-                }
-            } else {
-                const updateClient = window.rsvpSupabaseClient || supabaseClient;
-                if (!updateClient) {
-                    throw new Error('Supabase client not initialized');
-                }
-                
-                const { error } = await updateClient
-                    .from('guests')
-                    .update({
-                        rsvp: plusOneRsvpResponse,
-                        meal_choice: plusOneMealChoice,
-                        song_request: songRequest,
-                        dietary_notes: plusOneDietaryNotes,
-                        general_notes: plusOneGeneralNotes,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', currentPlusOne.id);
-                
-                if (error) {
-                    throw error;
-                }
-            }
-        }
-        
-        // Determine which success message to show based on RSVP responses
-        const plusOneRsvp = currentPlusOne ? document.getElementById('plusOneRsvpResponse').value : '';
-        const isAnyoneAttending = rsvpResponse === 'yes' || plusOneRsvp === 'yes';
-        
-        // Get success message elements
-        const successMsgAttending = document.getElementById('successMessageAttending');
-        const successMsgNotAttending = document.getElementById('successMessageNotAttending');
-        
-        // Check if elements exist (in case page wasn't refreshed after update)
-        if (!successMsgAttending || !successMsgNotAttending) {
-            console.error('Success message elements not found. Please refresh the page.');
-            // Fallback behavior
-            document.getElementById('rsvpFormSection').style.display = 'none';
-            document.getElementById('successSection').style.display = 'block';
+    });
+
+    rsvpDetailsForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        if (!currentRsvpGuests || currentRsvpGuests.length === 0) {
+            alert('Error: Guest information not found. Please start over.');
             return;
         }
-        
-        if (isAnyoneAttending) {
-            successMsgAttending.style.display = 'block';
-            successMsgNotAttending.style.display = 'none';
-        } else {
-            successMsgAttending.style.display = 'none';
-            successMsgNotAttending.style.display = 'block';
+
+        const songRequest = document.getElementById('songRequest').value.trim() || null;
+        const container = document.getElementById('rsvpBlocksContainer');
+        const blocks = container ? container.querySelectorAll('.rsvp-guest-block') : [];
+
+        try {
+            const updateClient = window.rsvpSupabaseClient || supabaseClient;
+            let isAnyoneAttending = false;
+
+            for (let i = 0; i < blocks.length; i++) {
+                const block = blocks[i];
+                const rsvpEl = block.querySelector('.rsvp-guest-response');
+                if (!rsvpEl) continue;
+                const rsvpResponse = rsvpEl.value;
+                const mealEl = block.querySelector('.rsvp-meal-choice');
+                const mealChoice = rsvpResponse === 'yes' && mealEl ? mealEl.value || null : null;
+                const dietaryEl = block.querySelector('.rsvp-dietary-notes');
+                const generalEl = block.querySelector('.rsvp-general-notes');
+                const dietaryNotes = dietaryEl && dietaryEl.value.trim() ? dietaryEl.value.trim() : null;
+                const generalNotes = generalEl && generalEl.value.trim() ? generalEl.value.trim() : null;
+                const guestId = block.dataset.guestId;
+
+                if (rsvpResponse === 'yes') {
+                    isAnyoneAttending = true;
+                }
+
+                if (USE_MOCK_DATA) {
+                    const result = updateGuestMock(guestId, {
+                        rsvp: rsvpResponse,
+                        meal_choice: mealChoice,
+                        song_request: songRequest,
+                        dietary_notes: dietaryNotes,
+                        general_notes: generalNotes
+                    });
+                    if (!result.success) {
+                        throw new Error(result.error);
+                    }
+                } else {
+                    if (!updateClient) {
+                        throw new Error('Supabase client not initialized');
+                    }
+                    const { error } = await updateClient
+                        .from('guests')
+                        .update({
+                            rsvp: rsvpResponse,
+                            meal_choice: mealChoice,
+                            song_request: songRequest,
+                            dietary_notes: dietaryNotes,
+                            general_notes: generalNotes,
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq('id', guestId);
+
+                    if (error) {
+                        throw error;
+                    }
+                }
+            }
+
+            const successMsgAttending = document.getElementById('successMessageAttending');
+            const successMsgNotAttending = document.getElementById('successMessageNotAttending');
+
+            if (!successMsgAttending || !successMsgNotAttending) {
+                console.error('Success message elements not found. Please refresh the page.');
+                document.getElementById('rsvpFormSection').style.display = 'none';
+                document.getElementById('successSection').style.display = 'block';
+                return;
+            }
+
+            if (isAnyoneAttending) {
+                successMsgAttending.style.display = 'block';
+                successMsgNotAttending.style.display = 'none';
+            } else {
+                successMsgAttending.style.display = 'none';
+                successMsgNotAttending.style.display = 'block';
+            }
+
+            document.getElementById('rsvpFormSection').style.display = 'none';
+            document.getElementById('successSection').style.display = 'block';
+        } catch (err) {
+            console.error('Error submitting RSVP:', err);
+            alert('An error occurred while submitting your RSVP. Please try again.');
         }
-        
-        // Show success message
-        document.getElementById('rsvpFormSection').style.display = 'none';
-        document.getElementById('successSection').style.display = 'block';
-        
-    } catch (err) {
-        console.error('[RSVP DEBUG] Error submitting RSVP:', err);
-        alert('An error occurred while submitting your RSVP. Please try again.');
-    }
     });
-    console.log('[RSVP DEBUG] RSVP details form handler attached successfully');
 }
 
 // Back button handler from RSVP form
-document.getElementById('backBtn').addEventListener('click', function() {
-    // Reset form
-    document.getElementById('rsvpDetailsForm').reset();
-    currentGuest = null;
-    currentPlusOne = null;
-    
-    // Hide conditional fields
-    hideAttendingFields('primary');
-    hideAttendingFields('plusOne');
-    
-    // Show name lookup, hide RSVP form
-    document.getElementById('rsvpFormSection').style.display = 'none';
-    document.getElementById('nameLookupSection').style.display = 'block';
-});
+const backBtn = document.getElementById('backBtn');
+if (backBtn) {
+    backBtn.addEventListener('click', function () {
+        const form = document.getElementById('rsvpDetailsForm');
+        if (form) form.reset();
+        const blocks = document.getElementById('rsvpBlocksContainer');
+        if (blocks) blocks.innerHTML = '';
+        currentRsvpGuests = [];
+        selectedGuestIds = new Set();
+        document.getElementById('rsvpFormSection').style.display = 'none';
+        document.getElementById('nameLookupSection').style.display = 'block';
+    });
+}
 
 // Back button handler from guest selection
-document.getElementById('backToNameBtn').addEventListener('click', function() {
-    // Show name lookup, hide guest selection
-    document.getElementById('guestSelectionSection').style.display = 'none';
-    document.getElementById('nameLookupSection').style.display = 'block';
-});
+const backToNameBtn = document.getElementById('backToNameBtn');
+if (backToNameBtn) {
+    backToNameBtn.addEventListener('click', function () {
+        selectedGuestIds = new Set();
+        document.getElementById('guestSelectionSection').style.display = 'none';
+        document.getElementById('nameLookupSection').style.display = 'block';
+    });
+}

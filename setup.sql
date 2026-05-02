@@ -3,21 +3,29 @@ CREATE TABLE IF NOT EXISTS guests (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     first_name TEXT NOT NULL,
     last_name TEXT NOT NULL,
+    nickname TEXT,
     email TEXT,
     address TEXT,
     phone TEXT,
+    family TEXT,
     plus_one_id UUID REFERENCES guests(id),
     rsvp TEXT CHECK (rsvp IN ('yes', 'no')),
     meal_choice TEXT CHECK (meal_choice IN ('chicken', 'beef', 'fish', 'vegetarian')),
     song_request TEXT,
     dietary_notes TEXT,
     general_notes TEXT,
+    post_rsvp_message TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
 
 -- Create an index on names for faster lookups
 CREATE INDEX idx_guests_name ON guests(first_name, last_name);
+
+CREATE INDEX idx_guests_nickname ON guests(nickname) WHERE nickname IS NOT NULL AND nickname <> '';
+
+-- Same label on each row = one invitation (e.g. "Smith Family"); used to show everyone on lookup
+CREATE INDEX idx_guests_family ON guests(family) WHERE family IS NOT NULL;
 
 -- Create a function to automatically update the updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
