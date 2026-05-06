@@ -29,10 +29,12 @@ The table will include these columns:
 - `dietary_notes` (Text)
 - `general_notes` (Text)
 - `post_rsvp_message` (Text, optional) - Optional note shown after RSVP (not used by the current site JS)
+- `day_after_invited` (Boolean, default false) - If true, this guest may RSVP for the day-after gathering on the RSVP form
+- `day_after_rsvp` (Text, optional) - `'yes'` or `'no'` when invited; null if not invited or not yet answered
 - `created_at` (Timestamp)
 - `updated_at` (Timestamp)
 
-If you already created `guests` from an older `setup.sql`, run these in the SQL Editor as needed: [`scripts/add_post_rsvp_message.sql`](scripts/add_post_rsvp_message.sql), [`scripts/add_family_column.sql`](scripts/add_family_column.sql), [`scripts/add_nickname_column.sql`](scripts/add_nickname_column.sql).
+If you already created `guests` from an older `setup.sql`, run these in the SQL Editor as needed: [`scripts/add_post_rsvp_message.sql`](scripts/add_post_rsvp_message.sql), [`scripts/add_family_column.sql`](scripts/add_family_column.sql), [`scripts/add_nickname_column.sql`](scripts/add_nickname_column.sql), [`scripts/add_day_after_columns.sql`](scripts/add_day_after_columns.sql).
 
 ### Name lookup: typos and nicknames
 
@@ -90,6 +92,15 @@ You can add guests through:
 4. **`scripts/import_guests.py`** - Repeatable import with service role; see [`scripts/README.md`](scripts/README.md)
 
 Export back to a spreadsheet: Table Editor CSV export, or **`scripts/export_guests.py`** (documented in [`scripts/README.md`](scripts/README.md)).
+
+### Day-after party invitations
+
+Only some guests may be invited to the day-after gathering. The usual workflow is: export with **`scripts/export_guests.py`**, add a column **`day_after_invite`** in the spreadsheet (`true` / `false` per row), then run **`scripts/set_day_after_invited.py`** on that CSV — it syncs the **`day_after_invited`** column in the database (see [`scripts/README.md`](scripts/README.md)). Alternatively use a short name-only CSV, SQL, or the Table Editor. Guests submit **`day_after_rsvp`** on the website; you can also bulk-update in SQL if needed:
+
+```sql
+UPDATE guests SET day_after_invited = true
+WHERE id IN ('uuid-1', 'uuid-2');
+```
 
 ### Example SQL Insert:
 ```sql

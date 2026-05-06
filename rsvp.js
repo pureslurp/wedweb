@@ -529,8 +529,24 @@ function buildGuestBlockHTML(guest) {
     const email = guest.email ? escapeHtml(guest.email) : 'Not provided';
     const phone = guest.phone ? escapeHtml(guest.phone) : 'Not provided';
     const address = guest.address ? escapeHtml(guest.address) : 'Not provided';
+    const dayAfterInvited =
+        guest.day_after_invited === true || guest.day_after_invited === 'true';
+    const dayAfterSection = dayAfterInvited
+        ? '<div class="form-group rsvp-day-after-group">' +
+              '<label class="form-label">Will ' + fn + ' attend the day-after gathering?</label>' +
+              '<select class="form-input rsvp-day-after-response" required>' +
+                  '<option value="">Please select...</option>' +
+                  '<option value="yes">Yes</option>' +
+                  '<option value="no">No</option>' +
+              '</select>' +
+          '</div>'
+        : '';
     return (
-        '<div class="guest-section rsvp-guest-block" data-guest-id="' + escapeHtml(String(guest.id)) + '">' +
+        '<div class="guest-section rsvp-guest-block" data-guest-id="' +
+            escapeHtml(String(guest.id)) +
+            '" data-day-after-invited="' +
+            (dayAfterInvited ? 'true' : 'false') +
+            '">' +
             '<h3 class="section-title">' + fn + ' ' + ln + '</h3>' +
             '<div class="guest-info">' +
                 '<p><strong>Email:</strong> ' + email + '</p>' +
@@ -565,6 +581,7 @@ function buildGuestBlockHTML(guest) {
                     '<textarea class="form-input form-textarea rsvp-general-notes" rows="3" placeholder="Anything else you would like to share"></textarea>' +
                 '</div>' +
             '</div>' +
+            dayAfterSection +
         '</div>'
     );
 }
@@ -710,6 +727,8 @@ async function openRsvpFormForSelectedGuests() {
         if (diet && g.dietary_notes) diet.value = g.dietary_notes;
         const gen = block.querySelector('.rsvp-general-notes');
         if (gen && g.general_notes) gen.value = g.general_notes;
+        const dayAfter = block.querySelector('.rsvp-day-after-response');
+        if (dayAfter && g.day_after_rsvp) dayAfter.value = g.day_after_rsvp;
     });
 
     const songInput = document.getElementById('songRequest');
@@ -778,6 +797,17 @@ if (rsvpDetailsForm) {
         const container = document.getElementById('rsvpBlocksContainer');
         const blocks = container ? container.querySelectorAll('.rsvp-guest-block') : [];
 
+        for (let v = 0; v < blocks.length; v++) {
+            const vb = blocks[v];
+            if (vb.getAttribute('data-day-after-invited') === 'true') {
+                const da = vb.querySelector('.rsvp-day-after-response');
+                if (!da || !da.value) {
+                    alert('Please answer the day-after gathering question for each invited guest.');
+                    return;
+                }
+            }
+        }
+
         try {
             const updateClient = window.rsvpSupabaseClient || supabaseClient;
             let isAnyoneAttending = false;
@@ -794,19 +824,28 @@ if (rsvpDetailsForm) {
                 const dietaryNotes = dietaryEl && dietaryEl.value.trim() ? dietaryEl.value.trim() : null;
                 const generalNotes = generalEl && generalEl.value.trim() ? generalEl.value.trim() : null;
                 const guestId = block.dataset.guestId;
+                const dayAfterInvited = block.getAttribute('data-day-after-invited') === 'true';
+                const dayAfterEl = block.querySelector('.rsvp-day-after-response');
 
                 if (rsvpResponse === 'yes') {
                     isAnyoneAttending = true;
                 }
 
+                const dayAfterRsvp =
+                    dayAfterInvited && dayAfterEl && dayAfterEl.value ? dayAfterEl.value : null;
+
                 if (USE_MOCK_DATA) {
-                    const result = updateGuestMock(guestId, {
+                    const mockPayload = {
                         rsvp: rsvpResponse,
                         meal_choice: mealChoice,
                         song_request: songRequest,
                         dietary_notes: dietaryNotes,
                         general_notes: generalNotes
-                    });
+                    };
+                    if (dayAfterInvited) {
+                        mockPayload.day_after_rsvp = dayAfterRsvp;
+                    }
+                    const result = updateGuestMock(guestId, mockPayload);
                     if (!result.success) {
                         throw new Error(result.error);
                     }
@@ -814,16 +853,20 @@ if (rsvpDetailsForm) {
                     if (!updateClient) {
                         throw new Error('Supabase client not initialized');
                     }
+                    const updatePayload = {
+                        rsvp: rsvpResponse,
+                        meal_choice: mealChoice,
+                        song_request: songRequest,
+                        dietary_notes: dietaryNotes,
+                        general_notes: generalNotes,
+                        updated_at: new Date().toISOString()
+                    };
+                    if (dayAfterInvited) {
+                        updatePayload.day_after_rsvp = dayAfterRsvp;
+                    }
                     const { error } = await updateClient
                         .from('guests')
-                        .update({
-                            rsvp: rsvpResponse,
-                            meal_choice: mealChoice,
-                            song_request: songRequest,
-                            dietary_notes: dietaryNotes,
-                            general_notes: generalNotes,
-                            updated_at: new Date().toISOString()
-                        })
+                        .update(updatePayload)
                         .eq('id', guestId);
 
                     if (error) {
