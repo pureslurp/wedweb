@@ -4,10 +4,13 @@ Set `guests.day_after_invited` from a CSV (service role).
 
 Two modes (auto-detected from headers):
 
-1) Export sync — CSV from `export_guests.py`, plus a column you add in the sheet:
-   - Required headers: `id`, `day_after_invite`
-   - Each row: PATCH that guest so `day_after_invited` matches `day_after_invite`
-     (true/false; blank counts as false). Keeps the database aligned with the sheet.
+1) Export sync — CSV from `export_guests.py` with a marking column:
+
+   - Required: `id` plus **`day_after_invite`** OR **`day_after_invited`** (exported DB
+     column). If both are present, **`day_after_invite`** wins for reading each row.
+
+   Each row PATCHes `day_after_invited` true/false to match the cell (blank = false).
+
 
 2) Invite list — minimal CSV of people to flag as invited:
    - `first_name`, `last_name` per row (optional `email` / `id` per row)
@@ -38,8 +41,17 @@ def norm_email(s: str) -> str:
     return (s or "").strip().lower()
 
 
-def parse_day_after_invite_cell(raw: str | None) -> bool:
-    """Truth values for day_after_invite (export sync). Blank -> False."""
+def export_sync_marking_column(fieldnames: list[str]) -> str | None:
+    """CSV column whose values sync to guests.day_after_invited."""
+    if "day_after_invite" in fieldnames:
+        return "day_after_invite"
+    if "day_after_invited" in fieldnames:
+        return "day_after_invited"
+    return None
+
+
+def parse_bool_cell(raw: str | None) -> bool:
+    """Interpret spreadsheet / CSV cell as bool. Blank -> False."""
     if raw is None:
         return False
     s = str(raw).strip()
@@ -116,7 +128,9 @@ def index_guests(rows: list[dict[str, Any]]) -> dict[tuple[str, str], list[dict[
 
 
 def run_export_sync(
-    rows: list[dict[str, str]], by_id: dict[str, dict[str, Any]]
+    rows: list[dict[str, str]],
+    by_id: dict[str, dict[str, Any]],
+    marking_column: str,
 ) -> tuple[int, int, int]:
     """Returns (patched_count, skipped_unchanged, errors)."""
     patched = 0
@@ -133,7 +147,7 @@ def run_export_sync(
             print(f"Row {line_no}: no guest with id={id_raw}", file=sys.stderr)
             errors += 1
             continue
-        want = parse_day_after_invite_cell(row.get("day_after_invite"))
+        want = parse_bool_cell(row.get(marking_column))
         cur = by_id[id_raw].get("day_after_invited")
         # Normalize DB boolean vs missing
         cur_bool = cur is True
@@ -285,14 +299,32 @@ def main() -> None:
 
     fieldnames = reader.fieldnames or []
 
+    looks_like_bulk_export = "id" in fieldnames and (
+        "first_name" in fieldnames or "last_name" in fieldnames
+    )
+    sync_mark = export_sync_marking_column(fieldnames)
+    if looks_like_bulk_export and sync_mark is None:
+        print(
+            "ERROR: This file looks like a database export (columns include `id` and "
+            "names) but there is no marking column.\n"
+            "Add **`day_after_invite`** OR use the exported **`day_after_invited`** "
+            "(set true/false per row).\n"
+            "Without either, the script would mark every row as invited.\n"
+            "If both columns exist, `day_after_invite` is read for each row.\n"
+            "To fix accidental all-invited: set false everywhere (or blank), save CSV, rerun.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     all_guests = fetch_all_guests()
     by_name = index_guests(all_guests)
     by_id = {str(g["id"]): g for g in all_guests if g.get("id")}
 
-    if "id" in fieldnames and "day_after_invite" in fieldnames:
-        patched, skipped, errors = run_export_sync(rows, by_id)
+    if "id" in fieldnames and sync_mark is not None:
+        patched, skipped, errors = run_export_sync(rows, by_id, sync_mark)
         print(
-            f"Export sync: patched {patched}, unchanged {skipped}, errors {errors}.",
+            f"Export sync (via column {sync_mark!r}): patched {patched}, "
+            f"unchanged {skipped}, errors {errors}.",
             file=sys.stderr,
         )
         if errors:
@@ -301,8 +333,8 @@ def main() -> None:
 
     if "first_name" not in fieldnames and "id" not in fieldnames:
         print(
-            "CSV must include: (id + day_after_invite) for export sync, or "
-            "first_name + last_name (or id) for invite list.",
+            "CSV must include: (`id` + `day_after_invite` or `day_after_invited`) for export sync, or "
+            "first_name + last_name (or id-only invite list).",
             file=sys.stderr,
         )
         sys.exit(1)

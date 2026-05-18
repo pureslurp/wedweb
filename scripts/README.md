@@ -63,15 +63,15 @@ The script inserts each data row, then sets `plus_one_id` when `plus_one_first_n
 **Option A — Full export (recommended for a clean sync)**
 
 1. Export: `python3 scripts/export_guests.py > guests_export.csv`
-2. Open in Excel or Google Sheets. **Add a new column** named exactly **`day_after_invite`** (this is your scratch column; the database column remains `day_after_invited`).
-3. For each row, set **`day_after_invite`** to `true` or `false` (or `yes`/`no`, `1`/`0`, or leave blank = not invited). Every row in the file should reflect the invite list you want.
+2. Open in Excel or Google Sheets and edit **`day_after_invited`** (already in that file) — set `TRUE`/`FALSE` per guest you want invited or not. Or add a column **`day_after_invite`** instead; if both exist, the script reads **`day_after_invite`**. Cells can use `true`/`false`, `yes`/`no`, `1`/`0`, etc.; blank counts as **not invited**. **Without one of those two columns**, a full export plus names would mis-run—do not use a bare export.
+3. Same as step 2 for values — every row should reflect who gets a day-after invite.
 4. Save as CSV and run:
 
 ```bash
 python3 scripts/set_day_after_invited.py guests_marked.csv
 ```
 
-The script detects `id` + `day_after_invite` in the header and **syncs** `day_after_invited` in Supabase to match. Only rows that need a change are PATCHed.
+The script detects **`id`** plus **`day_after_invited`** or **`day_after_invite`** and **syncs** `day_after_invited` in Supabase. Only rows that need a change are PATCHed.
 
 **Option B — Short list (names only)**
 

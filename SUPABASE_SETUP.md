@@ -95,7 +95,7 @@ Export back to a spreadsheet: Table Editor CSV export, or **`scripts/export_gues
 
 ### Day-after party invitations
 
-Only some guests may be invited to the day-after gathering. The usual workflow is: export with **`scripts/export_guests.py`**, add a column **`day_after_invite`** in the spreadsheet (`true` / `false` per row), then run **`scripts/set_day_after_invited.py`** on that CSV — it syncs the **`day_after_invited`** column in the database (see [`scripts/README.md`](scripts/README.md)). Alternatively use a short name-only CSV, SQL, or the Table Editor. Guests submit **`day_after_rsvp`** on the website; you can also bulk-update in SQL if needed:
+Only some guests may be invited to the day-after gathering. The usual workflow is: export with **`scripts/export_guests.py`**, edit **`day_after_invited`** in the spreadsheet (or add **`day_after_invite`** — if both columns exist the script prefers **`day_after_invite`**), then run **`scripts/set_day_after_invited.py`** on that CSV — it syncs **`day_after_invited`** in the database (see [`scripts/README.md`](scripts/README.md)). Alternatively use a short name-only CSV, SQL, or the Table Editor. Guests submit **`day_after_rsvp`** on the website; you can also bulk-update in SQL if needed:
 
 ```sql
 UPDATE guests SET day_after_invited = true
