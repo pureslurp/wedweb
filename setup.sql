@@ -17,6 +17,9 @@ CREATE TABLE IF NOT EXISTS guests (
     post_rsvp_message TEXT,
     day_after_invited BOOLEAN NOT NULL DEFAULT false,
     day_after_rsvp TEXT CHECK (day_after_rsvp IS NULL OR day_after_rsvp IN ('yes', 'no')),
+    shuttle_offered BOOLEAN NOT NULL DEFAULT false,
+    shuttle_rsvp TEXT CHECK (shuttle_rsvp IS NULL OR shuttle_rsvp IN ('yes', 'no')),
+    marriott_stay TEXT CHECK (marriott_stay IS NULL OR marriott_stay IN ('yes', 'no')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );

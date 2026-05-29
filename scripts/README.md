@@ -11,6 +11,7 @@ Use this folder for **repeatable** CSV import/export against Supabase. For a one
    - **`family`** — optional; use the **same text on every row** in a household (e.g. `Smith Family`). Anyone who searches will see everyone with that label. Leave blank for individuals; use `plus_one_*` helpers for couples without a family label if you prefer.
    - Plus-one helpers (not database columns): `plus_one_first_name`, `plus_one_last_name` — fill the plus one’s name; after rows exist, link pairs in SQL or use `import_guests.py` below.
    - Optional: `day_after_invited`, `day_after_rsvp` — usually leave blank; use [`set_day_after_invited.py`](set_day_after_invited.py) to mark invitees after guests exist.
+   - Optional: `shuttle_offered`, `shuttle_rsvp`, `marriott_stay` — usually leave blank; the **RSVP site** collects `marriott_stay` and `shuttle_rsvp` from guests (see [SUPABASE_SETUP.md](../SUPABASE_SETUP.md)). `shuttle_offered` is optional legacy data and is **not** read by the live RSVP flow.
 
 2. **Import CSV** in Supabase: **Table Editor** → `guests` → **Insert** → **Import data from CSV** (see [Supabase docs](https://supabase.com/docs/guides/database/tables#importing-data)).
 
@@ -96,6 +97,24 @@ python3 scripts/set_day_after_invited.py day_after_invitees.csv
 
 If multiple people share one name pair, the script lists candidate **`id`** values; add **`email`** or **`id`** for those rows and run again.
 
+### `shuttle_offered` (optional, not used by RSVP)
+
+The live RSVP flow asks guests whether they are staying at the Marriott, then conditionally asks about the shuttle; it does **not** read **`shuttle_offered`**. You can still use **`set_shuttle_offered.py`** to bulk-set that column for your own exports or planning (same CSV patterns as documented previously: export sync with `shuttle_offer` / `shuttle_offered`, or a short name list).
+
+### Deploy RSVP confirmation Edge Function (no `supabase login`)
+
+If `supabase functions deploy` fails (missing CLI or browser login), use a **personal access token** and the helper script (same token type as CI; not your database service_role key):
+
+1. Create a token: [Account → Access Tokens](https://supabase.com/dashboard/account/tokens).
+2. From the repo root:
+
+```bash
+export SUPABASE_ACCESS_TOKEN='sbp_...'
+python3 scripts/deploy_send_rsvp_confirmation.py
+```
+
+Optional: `SUPABASE_PROJECT_REF` if not using the default ref. You still need **Edge Function secrets** for Gmail (`GMAIL_SMTP_USER`, `GMAIL_SMTP_APP_PASSWORD`) as in [SUPABASE_SETUP.md](../SUPABASE_SETUP.md).
+
 ### Aligning an older database
 
 If optional columns are missing from `guests`, run the matching script in the SQL Editor once, as needed:
@@ -104,3 +123,5 @@ If optional columns are missing from `guests`, run the matching script in the SQ
 - [`add_family_column.sql`](add_family_column.sql)
 - [`add_nickname_column.sql`](add_nickname_column.sql)
 - [`add_day_after_columns.sql`](add_day_after_columns.sql)
+- [`add_shuttle_columns.sql`](add_shuttle_columns.sql)
+- [`add_marriott_stay_column.sql`](add_marriott_stay_column.sql)

@@ -16,6 +16,9 @@
       "general_notes": null,
       "day_after_invited": true,
       "day_after_rsvp": null,
+      "shuttle_offered": true,
+      "shuttle_rsvp": null,
+      "marriott_stay": null,
       "created_at": "2025-01-01T00:00:00Z",
       "updated_at": "2025-01-01T00:00:00Z"
     },
@@ -32,6 +35,11 @@
       "song_request": null,
       "dietary_notes": null,
       "general_notes": null,
+      "day_after_invited": false,
+      "day_after_rsvp": null,
+      "shuttle_offered": true,
+      "shuttle_rsvp": null,
+      "marriott_stay": null,
       "created_at": "2025-01-01T00:00:00Z",
       "updated_at": "2025-01-01T00:00:00Z"
     },
@@ -79,6 +87,7 @@
       "meal_choice": null,
       "song_request": null,
       "dietary_notes": null,
+      "general_notes": null,
       "created_at": "2025-01-01T00:00:00Z",
       "updated_at": "2025-01-01T00:00:00Z"
     }

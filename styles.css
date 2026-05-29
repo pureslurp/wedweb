@@ -382,6 +382,115 @@ body {
     font-style: italic;
 }
 
+.rsvp-venue-summary {
+    text-align: left;
+    background: #faf9f7;
+    border: 1px solid #e0d5c7;
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.rsvp-venue-summary:last-of-type {
+    margin-bottom: 2rem;
+}
+
+.rsvp-venue-heading {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #5a5a5a;
+    margin: 0 0 0.75rem;
+    font-family: 'Georgia', serif;
+    letter-spacing: 0.5px;
+}
+
+.rsvp-venue-date {
+    margin: 0 0 0.75rem;
+    color: #4a4a4a;
+    font-size: 1rem;
+}
+
+.rsvp-venue-list {
+    margin: 0 0 1rem 1.1rem;
+    padding: 0;
+    color: #4a4a4a;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.rsvp-venue-address {
+    margin: 0 0 0.75rem;
+    color: #4a4a4a;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.rsvp-venue-travel-link {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #6f5a43;
+}
+
+.rsvp-venue-travel-link a {
+    color: #8b7355;
+    font-weight: 500;
+}
+
+.rsvp-venue-travel-link a:hover {
+    text-decoration: underline;
+}
+
+.rsvp-wizard-indicator {
+    font-size: 0.95rem;
+    color: #6f5a43;
+    margin: -1.5rem 0 1.75rem;
+    min-height: 1.4em;
+}
+
+.rsvp-wizard-step {
+    display: none;
+    text-align: center;
+}
+
+.rsvp-wizard-step.is-active {
+    display: block;
+}
+
+.rsvp-wizard-step .rsvp-title {
+    margin-bottom: 0.75rem;
+}
+
+.rsvp-wizard-lede {
+    text-align: left;
+    font-size: 0.98rem;
+    color: #4a4a4a;
+    line-height: 1.55;
+    margin: 0 0 0.75rem;
+    max-width: 36rem;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.rsvp-hotel-step-empty {
+    text-align: left;
+    font-size: 0.98rem;
+    color: #5a5a5a;
+    line-height: 1.5;
+    margin: 0 0 1.5rem;
+    padding: 1rem 1.25rem;
+    background: #faf9f7;
+    border: 1px solid #e0d5c7;
+    border-radius: 8px;
+}
+
+.rsvp-shuttle-followup {
+    margin-top: 0.5rem;
+}
+
+.rsvp-wizard-step .rsvp-venue-travel-link {
+    margin-bottom: 1.5rem;
+}
+
 .rsvp-form {
     text-align: left;
 }
@@ -537,6 +646,25 @@ body {
     font-size: 0.95rem;
 }
 
+.rsvp-success-email {
+    margin: 2rem 0 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e0d5c7;
+    text-align: left;
+}
+
+.rsvp-success-email .rsvp-wizard-lede {
+    margin-bottom: 1.25rem;
+}
+
+#successReturnHomeBtn {
+    margin-top: 1rem;
+}
+
+#successEmailStatus.success-email-sent {
+    color: #4a6741;
+}
+
 .success-message {
     font-size: 1.1rem;
     color: #5a5a5a;
@@ -674,6 +802,37 @@ select.form-input {
     margin-bottom: 1rem;
     font-weight: 500;
     font-family: 'Georgia', serif;
+}
+
+.rsvp-status-details {
+    margin: 0;
+}
+
+.rsvp-status-details p {
+    margin: 0.5rem 0;
+    font-size: 1rem;
+    color: #4a4a4a;
+    line-height: 1.5;
+}
+
+.rsvp-status-details strong {
+    color: #6a6a6a;
+    font-weight: 600;
+}
+
+.rsvp-status-value {
+    color: #3a3a3a;
+}
+
+.rsvp-status-guest-block:last-of-type {
+    border-bottom: none;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0;
+}
+
+.rsvp-status-hint {
+    margin-bottom: 1rem;
+    text-align: center;
 }
 
 .form-hint {
