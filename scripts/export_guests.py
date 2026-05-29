@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
 Export all rows from public.guests to CSV on stdout.
-Requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment.
+
+Loads `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from the process environment,
+or from a `.env` file at the repository root (without overriding existing exports).
 """
 from __future__ import annotations
 
@@ -11,6 +13,10 @@ import os
 import sys
 import urllib.error
 import urllib.request
+
+from repo_env import load_repo_env
+
+load_repo_env()
 
 
 def main() -> None:

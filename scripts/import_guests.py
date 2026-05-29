@@ -5,7 +5,7 @@ Import guests from a CSV file (see guests_import_template.csv in the repo root).
 Pass 1: inserts each row (minus helper columns plus_one_first_name / plus_one_last_name).
 Pass 2: sets plus_one_id using those helper columns and resolved UUIDs.
 
-Requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment.
+Loads credentials from the environment or repo-root `.env` (see `repo_env.py`).
 """
 from __future__ import annotations
 
@@ -16,6 +16,10 @@ import sys
 import urllib.error
 import urllib.request
 from typing import Any
+
+from repo_env import load_repo_env
+
+load_repo_env()
 
 
 INSERTABLE = {
@@ -32,6 +36,11 @@ INSERTABLE = {
     "song_request",
     "dietary_notes",
     "general_notes",
+    "day_after_invited",
+    "day_after_rsvp",
+    "shuttle_offered",
+    "shuttle_rsvp",
+    "marriott_stay",
 }
 
 HELPER = ("plus_one_first_name", "plus_one_last_name")
@@ -100,6 +109,24 @@ def main() -> None:
             if k not in INSERTABLE:
                 continue
             if v is None or str(v).strip() == "":
+                continue
+            if k == "day_after_invited":
+                low = str(v).strip().lower()
+                if low in ("true", "1", "yes"):
+                    payload[k] = True
+                elif low in ("false", "0", "no"):
+                    payload[k] = False
+                else:
+                    print(f"Row {i + 2}: day_after_invited must be true/false, got {v!r}, skipping column.", file=sys.stderr)
+                continue
+            if k == "shuttle_offered":
+                low = str(v).strip().lower()
+                if low in ("true", "1", "yes"):
+                    payload[k] = True
+                elif low in ("false", "0", "no"):
+                    payload[k] = False
+                else:
+                    print(f"Row {i + 2}: shuttle_offered must be true/false, got {v!r}, skipping column.", file=sys.stderr)
                 continue
             payload[k] = str(v).strip()
 

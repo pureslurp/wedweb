@@ -29,10 +29,15 @@ The table will include these columns:
 - `dietary_notes` (Text)
 - `general_notes` (Text)
 - `post_rsvp_message` (Text, optional) - Optional note shown after RSVP (not used by the current site JS)
+- `day_after_invited` (Boolean, default false) - If true, this guest may RSVP for the day-after gathering on the RSVP form
+- `day_after_rsvp` (Text, optional) - `'yes'` or `'no'` when invited; null if not invited or not yet answered
+- `shuttle_offered` (Boolean, default false) - Optional; **not used by the RSVP site** (legacy / spreadsheet). Guests self-report hotel stay on the RSVP flow.
+- `shuttle_rsvp` (Text, optional) - `'yes'` or `'no'` when the guest is attending the wedding, staying at the Marriott, and answers the shuttle question; null otherwise
+- `marriott_stay` (Text, optional) - `'yes'` or `'no'` when the guest is attending the wedding and completes the hotel step; null otherwise (e.g. not attending)
 - `created_at` (Timestamp)
 - `updated_at` (Timestamp)
 
-If you already created `guests` from an older `setup.sql`, run these in the SQL Editor as needed: [`scripts/add_post_rsvp_message.sql`](scripts/add_post_rsvp_message.sql), [`scripts/add_family_column.sql`](scripts/add_family_column.sql), [`scripts/add_nickname_column.sql`](scripts/add_nickname_column.sql).
+If you already created `guests` from an older `setup.sql`, run these in the SQL Editor as needed: [`scripts/add_post_rsvp_message.sql`](scripts/add_post_rsvp_message.sql), [`scripts/add_family_column.sql`](scripts/add_family_column.sql), [`scripts/add_nickname_column.sql`](scripts/add_nickname_column.sql), [`scripts/add_day_after_columns.sql`](scripts/add_day_after_columns.sql), [`scripts/add_shuttle_columns.sql`](scripts/add_shuttle_columns.sql), [`scripts/add_marriott_stay_column.sql`](scripts/add_marriott_stay_column.sql).
 
 ### Name lookup: typos and nicknames
 
@@ -90,6 +95,46 @@ You can add guests through:
 4. **`scripts/import_guests.py`** - Repeatable import with service role; see [`scripts/README.md`](scripts/README.md)
 
 Export back to a spreadsheet: Table Editor CSV export, or **`scripts/export_guests.py`** (documented in [`scripts/README.md`](scripts/README.md)).
+
+### Day-after party invitations
+
+Only some guests may be invited to the day-after gathering. The usual workflow is: export with **`scripts/export_guests.py`**, edit **`day_after_invited`** in the spreadsheet (or add **`day_after_invite`** — if both columns exist the script prefers **`day_after_invite`**), then run **`scripts/set_day_after_invited.py`** on that CSV — it syncs **`day_after_invited`** in the database (see [`scripts/README.md`](scripts/README.md)). Alternatively use a short name-only CSV, SQL, or the Table Editor. Guests submit **`day_after_rsvp`** on the website; you can also bulk-update in SQL if needed:
+
+```sql
+UPDATE guests SET day_after_invited = true
+WHERE id IN ('uuid-1', 'uuid-2');
+```
+
+### Hotel stay & shuttle (RSVP)
+
+The website asks **everyone** who is attending the wedding whether they are staying at the **Auburn Hills Marriott Pontiac** (room block). **Shuttle** is only asked when they answer **yes** to that hotel question. Answers are stored in **`marriott_stay`** and **`shuttle_rsvp`**.
+
+The optional **`shuttle_offered`** column is **not** used by the RSVP UI; you can ignore it or use it in your own spreadsheets. The script **`scripts/set_shuttle_offered.py`** remains available if you use that column for offline planning, but the live RSVP flow does not read it.
+
+### RSVP confirmation emails (Gmail)
+
+After a guest submits an RSVP where **anyone on the form** said **yes** to the wedding and/or **yes** to the day-after gathering, the site calls a **Supabase Edge Function** that emails each affected guest (using the **`email`** on their row) from your Gmail account.
+
+1. **Google account:** Enable **2-Step Verification**, then create an **[App Password](https://support.google.com/accounts/answer/185833)** for Mail (not your normal Gmail password).
+2. **Database:** Run [`scripts/add_shuttle_columns.sql`](scripts/add_shuttle_columns.sql) and [`scripts/add_marriott_stay_column.sql`](scripts/add_marriott_stay_column.sql) if you have not already (both are included in current `setup.sql` for new projects).
+3. **Deploy the function** from the repo root (install [Supabase CLI](https://supabase.com/docs/guides/cli) if needed):
+
+   ```bash
+   supabase functions deploy send-rsvp-confirmation
+   ```
+
+4. **Edge Function secrets** (Dashboard → **Edge Functions** → **Secrets**, or `supabase secrets set`):
+
+   | Secret | Value |
+   |--------|--------|
+   | `SUPABASE_URL` | Same as your project URL (e.g. `https://xxxxx.supabase.co`) |
+   | `SUPABASE_SERVICE_ROLE_KEY` | **service_role** key (Settings → API) — server-side only |
+   | `GMAIL_SMTP_USER` | Full Gmail address (e.g. `s.raymor.martinez@gmail.com`) |
+   | `GMAIL_SMTP_APP_PASSWORD` | The 16-character App Password |
+
+5. **Allow unauthenticated invoke:** In [`supabase/config.toml`](supabase/config.toml), `send-rsvp-confirmation` has `verify_jwt = false` so the static RSVP page can call the function with the **anon** key after updates. The function only trusts data re-fetched with the **service role**; it does not use RSVP fields from the request body.
+
+6. **Test:** Submit a test RSVP with **yes** and a real **`email`** on the guest row; check inbox and spam. If the function logs SMTP errors, confirm the App Password and “less secure” / account security prompts on Google.
 
 ### Example SQL Insert:
 ```sql

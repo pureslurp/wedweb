@@ -93,6 +93,8 @@ if (USE_MOCK_DATA) {
 
 // Guests currently being edited in the RSVP form (subset of matchedGuests)
 let currentRsvpGuests = [];
+/** Guest ids who answered yes to the wedding on the last successful submit. */
+let lastSubmittedAttendingGuestIds = [];
 
 // Split a single "full name" field into first + last (first word = first name, rest = last name)
 function parseFullName(fullName) {
@@ -517,26 +519,31 @@ function fuzzyFilterGuests(guestRows, queryFirst, queryLast) {
     });
 }
 
+function getWeddingBlocksRoot() {
+    return document.getElementById('rsvpWeddingBlocksContainer');
+}
+
 function findGuestBlock(container, guestId) {
+    if (!container) return undefined;
     return Array.from(container.querySelectorAll('.rsvp-guest-block')).find(function (b) {
         return String(b.dataset.guestId) === String(guestId);
     });
 }
 
+function isValidEmail(value) {
+    var v = String(value || '').trim();
+    if (!v) return false;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+}
+
 function buildGuestBlockHTML(guest) {
     const fn = escapeHtml(guest.first_name);
     const ln = escapeHtml(guest.last_name);
-    const email = guest.email ? escapeHtml(guest.email) : 'Not provided';
-    const phone = guest.phone ? escapeHtml(guest.phone) : 'Not provided';
-    const address = guest.address ? escapeHtml(guest.address) : 'Not provided';
     return (
-        '<div class="guest-section rsvp-guest-block" data-guest-id="' + escapeHtml(String(guest.id)) + '">' +
+        '<div class="guest-section rsvp-guest-block" data-guest-id="' +
+            escapeHtml(String(guest.id)) +
+            '">' +
             '<h3 class="section-title">' + fn + ' ' + ln + '</h3>' +
-            '<div class="guest-info">' +
-                '<p><strong>Email:</strong> ' + email + '</p>' +
-                '<p><strong>Phone:</strong> ' + phone + '</p>' +
-                '<p><strong>Address:</strong> ' + address + '</p>' +
-            '</div>' +
             '<div class="form-group">' +
                 '<label class="form-label">Will ' + fn + ' be attending?</label>' +
                 '<select class="form-input rsvp-guest-response" required>' +
@@ -580,16 +587,6 @@ function showAttendingFieldsForBlock(blockEl, show) {
     }
 }
 
-function updateSongGroupVisibility() {
-    const form = document.getElementById('rsvpDetailsForm');
-    const grp = document.getElementById('songRequestGroup');
-    if (!form || !grp) return;
-    const anyYes = Array.from(form.querySelectorAll('.rsvp-guest-response')).some(function (el) {
-        return el.value === 'yes';
-    });
-    grp.style.display = anyYes ? 'block' : 'none';
-}
-
 // Display list of matching guests (one card per person; multi-select)
 function displayGuestList(guests, options) {
     options = options || {};
@@ -619,14 +616,9 @@ function displayGuestList(guests, options) {
         if (famLabel) {
             roleHint = '<p class="guest-role-hint">' + escapeHtml(famLabel) + '</p>';
         }
-        const emailLine = guest.email ? '<p class="guest-details">' + escapeHtml(guest.email) + '</p>' : '';
-        const addressLine = guest.address ? '<p class="guest-details">' + escapeHtml(guest.address) + '</p>' : '';
-
         guestCard.innerHTML =
             '<h3 class="guest-name">' + escapeHtml(guest.first_name) + ' ' + escapeHtml(guest.last_name) + '</h3>' +
-            roleHint +
-            emailLine +
-            addressLine;
+            roleHint;
 
         guestCard.addEventListener('click', function () {
             toggleGuestCard(guest.id);
@@ -678,12 +670,599 @@ function buildRsvpGreeting(names) {
     return 'RSVP for ' + names.slice(0, -1).join(', ') + ', and ' + names[names.length - 1];
 }
 
+function guestHasResponded(g) {
+    return g.rsvp === 'yes' || g.rsvp === 'no';
+}
+
+function getSelectedGuests() {
+    return matchedGuests.filter(function (g) {
+        return selectedGuestIds.has(String(g.id));
+    });
+}
+
+function partyHasAnyRsvp(guests) {
+    return guests.some(guestHasResponded);
+}
+
+function continueFromGuestSelection() {
+    if (selectedGuestIds.size === 0) return;
+    var selected = getSelectedGuests();
+    if (partyHasAnyRsvp(selected)) {
+        openRsvpStatusForSelectedGuests();
+    } else {
+        openRsvpFormForSelectedGuests();
+    }
+}
+
+function formatMealLabel(meal) {
+    if (!meal) return '';
+    return String(meal).charAt(0).toUpperCase() + String(meal).slice(1);
+}
+
+function formatYesNoLabel(val, yesText, noText) {
+    if (val === 'yes') return yesText || 'Yes';
+    if (val === 'no') return noText || 'No';
+    return null;
+}
+
+function rsvpStatusLine(label, value) {
+    if (!value) return '';
+    return (
+        '<p><strong>' +
+        escapeHtml(label) +
+        ':</strong> <span class="rsvp-status-value">' +
+        escapeHtml(String(value)) +
+        '</span></p>'
+    );
+}
+
+function buildRsvpStatusGuestCard(g) {
+    var fn = escapeHtml(g.first_name);
+    var ln = escapeHtml(g.last_name);
+    var lines = [];
+    var weddingStatus;
+
+    if (g.rsvp === 'yes') {
+        weddingStatus = 'Attending';
+    } else if (g.rsvp === 'no') {
+        weddingStatus = 'Not attending';
+    } else {
+        weddingStatus = 'Not yet responded';
+    }
+    lines.push(rsvpStatusLine('Wedding', weddingStatus));
+
+    if (g.rsvp === 'yes') {
+        if (g.meal_choice) {
+            lines.push(rsvpStatusLine('Meal', formatMealLabel(g.meal_choice)));
+        }
+        var marriott = formatYesNoLabel(g.marriott_stay, 'Yes', 'No');
+        if (marriott) {
+            lines.push(rsvpStatusLine('Staying at Marriott (room block)', marriott));
+        }
+        if (g.marriott_stay === 'yes') {
+            var shuttle = formatYesNoLabel(
+                g.shuttle_rsvp,
+                'Yes, planning to take the shuttle',
+                'No',
+            );
+            if (shuttle) {
+                lines.push(rsvpStatusLine('Hotel shuttle', shuttle));
+            }
+        }
+        if (g.dietary_notes) {
+            lines.push(rsvpStatusLine('Dietary restrictions', g.dietary_notes));
+        }
+        if (g.general_notes) {
+            lines.push(rsvpStatusLine('General notes', g.general_notes));
+        }
+    }
+
+    return (
+        '<div class="guest-section rsvp-status-guest-block">' +
+        '<h3 class="section-title">' +
+        fn +
+        ' ' +
+        ln +
+        '</h3>' +
+        '<div class="rsvp-status-details">' +
+        lines.join('') +
+        '</div>' +
+        '</div>'
+    );
+}
+
+function openRsvpStatusForSelectedGuests() {
+    if (selectedGuestIds.size === 0) return;
+
+    var selected = getSelectedGuests();
+    currentRsvpGuests = selected;
+
+    var names = selected.map(function (g) {
+        return g.first_name + ' ' + g.last_name;
+    });
+    var greeting = document.getElementById('rsvpStatusGreeting');
+    if (greeting) {
+        greeting.textContent = buildRsvpGreeting(names);
+    }
+
+    var container = document.getElementById('rsvpStatusBlocksContainer');
+    if (container) {
+        container.innerHTML = selected.map(buildRsvpStatusGuestCard).join('');
+    }
+
+    var actionBtn = document.getElementById('rsvpStatusActionBtn');
+    if (actionBtn) {
+        actionBtn.textContent = 'Edit RSVP';
+    }
+
+    var hint = document.getElementById('rsvpStatusHint');
+    if (hint) {
+        hint.style.display = 'block';
+    }
+
+    document.getElementById('guestSelectionSection').style.display = 'none';
+    document.getElementById('rsvpStatusSection').style.display = 'block';
+    document.getElementById('rsvpFormSection').style.display = 'none';
+    document.getElementById('successSection').style.display = 'none';
+}
+
+function countTotalWizardSteps() {
+    return 2;
+}
+
+function wizardStepLabel(activeIndex, total) {
+    return 'Step ' + activeIndex + ' of ' + total;
+}
+
+function setActiveWizardStep(step) {
+    var wedding = document.getElementById('rsvpStepWedding');
+    var shuttle = document.getElementById('rsvpStepShuttle');
+    if (wedding) {
+        wedding.classList.toggle('is-active', step === 'wedding');
+        wedding.style.display = step === 'wedding' ? '' : 'none';
+    }
+    if (shuttle) {
+        shuttle.classList.toggle('is-active', step === 'shuttle');
+        shuttle.style.display = step === 'shuttle' ? '' : 'none';
+    }
+    updateWizardIndicatorText(step);
+}
+
+function updateWizardIndicatorText(step) {
+    var el = document.getElementById('rsvpWizardIndicator');
+    if (!el) return;
+    var total = countTotalWizardSteps();
+    if (total <= 1) {
+        el.textContent = '';
+        return;
+    }
+    var idx = step === 'wedding' ? 1 : 2;
+    el.textContent = wizardStepLabel(idx, total);
+}
+
+function updateWeddingNavButtons() {
+    var nextBtn = document.getElementById('rsvpWeddingNextBtn');
+    var subBtn = document.getElementById('rsvpWeddingSubmitBtn');
+    if (!nextBtn || !subBtn) return;
+    nextBtn.style.display = 'block';
+    subBtn.style.display = 'none';
+}
+
+function updateMarriottShuttleFollowup(rowEl) {
+    var follow = rowEl.querySelector('.rsvp-shuttle-followup');
+    var shuttleSel = rowEl.querySelector('.rsvp-shuttle-response');
+    var marriottSel = rowEl.querySelector('.rsvp-marriott-stay');
+    if (!follow || !shuttleSel || !marriottSel) return;
+    if (marriottSel.value === 'yes') {
+        follow.style.display = 'block';
+        shuttleSel.required = true;
+    } else {
+        follow.style.display = 'none';
+        shuttleSel.required = false;
+        shuttleSel.value = '';
+    }
+}
+
+function buildHotelShuttleStepHtml() {
+    var wrap = document.getElementById('rsvpShuttleBlocksContainer');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    var root = getWeddingBlocksRoot();
+    if (!root) return;
+
+    var anyAttending = false;
+    currentRsvpGuests.forEach(function (g) {
+        var block = findGuestBlock(root, g.id);
+        if (!block) return;
+        var rsvpEl = block.querySelector('.rsvp-guest-response');
+        if (!rsvpEl || rsvpEl.value !== 'yes') return;
+        anyAttending = true;
+
+        var fn = escapeHtml(g.first_name);
+        var ln = escapeHtml(g.last_name);
+        var html =
+            '<div class="guest-section rsvp-shuttle-guest-block" data-guest-id="' +
+            escapeHtml(String(g.id)) +
+            '">' +
+            '<h3 class="section-title">' + fn + ' ' + ln + '</h3>' +
+            '<div class="form-group">' +
+            '<label class="form-label">Is ' + fn + ' staying at the Auburn Hills Marriott Pontiac (our room-block hotel)?</label>' +
+            '<select class="form-input rsvp-marriott-stay" required>' +
+            '<option value="">Please select...</option>' +
+            '<option value="yes">Yes</option>' +
+            '<option value="no">No</option>' +
+            '</select>' +
+            '</div>' +
+            '<div class="rsvp-shuttle-followup" style="display: none;">' +
+            '<div class="form-group">' +
+            '<label class="form-label">Will ' + fn + ' take the shuttle from the hotel to the wedding venue?</label>' +
+            '<select class="form-input rsvp-shuttle-response">' +
+            '<option value="">Please select...</option>' +
+            '<option value="yes">Yes</option>' +
+            '<option value="no">No</option>' +
+            '</select>' +
+            '</div>' +
+            '</div>' +
+            '</div>';
+        wrap.insertAdjacentHTML('beforeend', html);
+        var added = wrap.lastElementChild;
+        var mSel = added && added.querySelector('.rsvp-marriott-stay');
+        if (mSel && g.marriott_stay) {
+            mSel.value = g.marriott_stay;
+        }
+        if (added) {
+            updateMarriottShuttleFollowup(added);
+            var sh = added.querySelector('.rsvp-shuttle-response');
+            if (sh && g.shuttle_rsvp && mSel && mSel.value === 'yes') {
+                sh.value = g.shuttle_rsvp;
+            }
+        }
+    });
+
+    if (!anyAttending) {
+        wrap.innerHTML =
+            '<p class="rsvp-hotel-step-empty">No one on this RSVP is attending the wedding, so we don&rsquo;t need hotel or shuttle details. Use <strong>Submit RSVP</strong> below to finish.</p>';
+    }
+}
+
+function buildSuccessEmailFormHtml(attendingGuestIds) {
+    var wrap = document.getElementById('successEmailBlocksContainer');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+
+    attendingGuestIds.forEach(function (guestId) {
+        var g = currentRsvpGuests.find(function (guest) {
+            return String(guest.id) === String(guestId);
+        });
+        if (!g) return;
+        var fn = escapeHtml(g.first_name);
+        var ln = escapeHtml(g.last_name);
+        var html =
+            '<div class="guest-section rsvp-success-email-guest-block" data-guest-id="' +
+            escapeHtml(String(g.id)) +
+            '">' +
+            '<h3 class="section-title">' + fn + ' ' + ln + '</h3>' +
+            '<div class="form-group">' +
+            '<label class="form-label">Email (optional)</label>' +
+            '<input type="email" class="form-input rsvp-success-guest-email" autocomplete="email" placeholder="you@example.com">' +
+            '</div>' +
+            '</div>';
+        wrap.insertAdjacentHTML('beforeend', html);
+    });
+}
+
+function showRsvpSuccessPage(isAnyoneAttending) {
+    var successMsgAttending = document.getElementById('successMessageAttending');
+    var successMsgNotAttending = document.getElementById('successMessageNotAttending');
+    var emailSection = document.getElementById('successEmailSection');
+    var emailStatus = document.getElementById('successEmailStatus');
+    var sendBtn = document.getElementById('successSendEmailBtn');
+
+    if (successMsgAttending && successMsgNotAttending) {
+        if (isAnyoneAttending) {
+            successMsgAttending.style.display = 'block';
+            successMsgNotAttending.style.display = 'none';
+        } else {
+            successMsgAttending.style.display = 'none';
+            successMsgNotAttending.style.display = 'block';
+        }
+    }
+
+    if (emailStatus) {
+        emailStatus.textContent = '';
+        emailStatus.classList.remove('success-email-sent');
+    }
+    if (sendBtn) {
+        sendBtn.disabled = false;
+        sendBtn.style.display = '';
+    }
+
+    if (emailSection) {
+        if (isAnyoneAttending && lastSubmittedAttendingGuestIds.length > 0) {
+            buildSuccessEmailFormHtml(lastSubmittedAttendingGuestIds);
+            emailSection.style.display = 'block';
+        } else {
+            emailSection.style.display = 'none';
+            var emailWrap = document.getElementById('successEmailBlocksContainer');
+            if (emailWrap) emailWrap.innerHTML = '';
+        }
+    }
+
+    document.getElementById('rsvpFormSection').style.display = 'none';
+    document.getElementById('successSection').style.display = 'block';
+}
+
+function validateWeddingStep() {
+    var root = getWeddingBlocksRoot();
+    if (!root) return false;
+    var blocks = root.querySelectorAll('.rsvp-guest-block');
+    for (var i = 0; i < blocks.length; i++) {
+        var block = blocks[i];
+        var rsvpEl = block.querySelector('.rsvp-guest-response');
+        if (!rsvpEl || !rsvpEl.value) {
+            alert('Please select whether each guest is attending the wedding.');
+            return false;
+        }
+        if (rsvpEl.value === 'yes') {
+            var meal = block.querySelector('.rsvp-meal-choice');
+            if (!meal || !meal.value) {
+                alert('Please choose a meal for each guest who is attending.');
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+function getSuccessEmailForGuestId(guestId) {
+    var wrap = document.getElementById('successEmailBlocksContainer');
+    if (!wrap) return null;
+    var row = wrap.querySelector('.rsvp-success-email-guest-block[data-guest-id="' + guestId + '"]');
+    if (!row) return null;
+    var input = row.querySelector('.rsvp-success-guest-email');
+    if (!input) return null;
+    var v = input.value.trim();
+    return v || null;
+}
+
+function validateSuccessEmails() {
+    var wrap = document.getElementById('successEmailBlocksContainer');
+    if (!wrap) return true;
+    var rows = wrap.querySelectorAll('.rsvp-success-email-guest-block');
+    for (var i = 0; i < rows.length; i++) {
+        var input = rows[i].querySelector('.rsvp-success-guest-email');
+        if (!input) continue;
+        var v = input.value.trim();
+        if (v && !isValidEmail(v)) {
+            alert('Please enter a valid email address, or leave the field blank.');
+            input.focus();
+            return false;
+        }
+    }
+    return true;
+}
+
+async function sendSuccessConfirmationEmails() {
+    if (!validateSuccessEmails()) return;
+
+    var emailsByGuestId = {};
+    var anyEmail = false;
+    lastSubmittedAttendingGuestIds.forEach(function (guestId) {
+        var email = getSuccessEmailForGuestId(guestId);
+        if (email) {
+            emailsByGuestId[guestId] = email;
+            anyEmail = true;
+        }
+    });
+
+    if (!anyEmail) {
+        alert('Enter at least one email address to send a confirmation, or skip this step.');
+        return;
+    }
+
+    var sendBtn = document.getElementById('successSendEmailBtn');
+    var statusEl = document.getElementById('successEmailStatus');
+    if (sendBtn) sendBtn.disabled = true;
+
+    try {
+        var updateClient = window.rsvpSupabaseClient || supabaseClient;
+        var guestIdsToEmail = [];
+
+        for (var guestId in emailsByGuestId) {
+            if (!Object.prototype.hasOwnProperty.call(emailsByGuestId, guestId)) continue;
+            var email = emailsByGuestId[guestId];
+            guestIdsToEmail.push(String(guestId));
+
+            if (USE_MOCK_DATA) {
+                updateGuestMock(guestId, { email: email });
+            } else {
+                if (!updateClient) {
+                    throw new Error('Supabase client not initialized');
+                }
+                var res = await updateClient
+                    .from('guests')
+                    .update({ email: email, updated_at: new Date().toISOString() })
+                    .eq('id', guestId);
+                if (res.error) {
+                    throw res.error;
+                }
+            }
+        }
+
+        if (!USE_MOCK_DATA && updateClient && typeof updateClient.functions !== 'undefined') {
+            var fnRes = await updateClient.functions.invoke('send-rsvp-confirmation', {
+                body: { guest_ids: guestIdsToEmail },
+            });
+            if (fnRes.error) {
+                throw fnRes.error;
+            }
+        }
+
+        if (statusEl) {
+            statusEl.textContent = 'Confirmation email sent! Check your inbox (and spam folder).';
+            statusEl.classList.add('success-email-sent');
+        }
+        if (sendBtn) sendBtn.style.display = 'none';
+    } catch (err) {
+        console.error('Error sending confirmation email:', err);
+        alert('We could not send the confirmation email. Please try again.');
+        if (sendBtn) sendBtn.disabled = false;
+    }
+}
+
+function validateShuttleStep() {
+    var wrap = document.getElementById('rsvpShuttleBlocksContainer');
+    if (!wrap) return true;
+    if (wrap.querySelector('.rsvp-hotel-step-empty')) {
+        return true;
+    }
+    var rows = wrap.querySelectorAll('.rsvp-shuttle-guest-block');
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var mar = row.querySelector('.rsvp-marriott-stay');
+        if (!mar || !mar.value) {
+            alert('Please answer the hotel stay question for each guest listed.');
+            return false;
+        }
+        if (mar.value === 'yes') {
+            var sh = row.querySelector('.rsvp-shuttle-response');
+            if (!sh || !sh.value) {
+                alert('Please answer the shuttle question for each guest staying at the Marriott.');
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+function getShuttleRsvpForGuestId(guestId) {
+    var shuttleWrap = document.getElementById('rsvpShuttleBlocksContainer');
+    if (!shuttleWrap) return null;
+    var row = shuttleWrap.querySelector('.rsvp-shuttle-guest-block[data-guest-id="' + guestId + '"]');
+    if (!row) return null;
+    var sel = row.querySelector('.rsvp-shuttle-response');
+    return sel && sel.value ? sel.value : null;
+}
+
+function getMarriottStayForGuestId(guestId) {
+    var shuttleWrap = document.getElementById('rsvpShuttleBlocksContainer');
+    if (!shuttleWrap) return null;
+    var row = shuttleWrap.querySelector('.rsvp-shuttle-guest-block[data-guest-id="' + guestId + '"]');
+    if (!row) return null;
+    var sel = row.querySelector('.rsvp-marriott-stay');
+    return sel && sel.value ? sel.value : null;
+}
+
+async function performRsvpSubmit() {
+    if (!currentRsvpGuests || currentRsvpGuests.length === 0) {
+        alert('Error: Guest information not found. Please start over.');
+        return;
+    }
+
+    var root = getWeddingBlocksRoot();
+    var blocks = root ? root.querySelectorAll('.rsvp-guest-block') : [];
+
+    try {
+        var updateClient = window.rsvpSupabaseClient || supabaseClient;
+        var isAnyoneAttending = false;
+        lastSubmittedAttendingGuestIds = [];
+
+        for (var i = 0; i < blocks.length; i++) {
+            var block = blocks[i];
+            var rsvpEl = block.querySelector('.rsvp-guest-response');
+            if (!rsvpEl) continue;
+            var rsvpResponse = rsvpEl.value;
+            var mealEl = block.querySelector('.rsvp-meal-choice');
+            var mealChoice = rsvpResponse === 'yes' && mealEl ? mealEl.value || null : null;
+            var dietaryEl = block.querySelector('.rsvp-dietary-notes');
+            var generalEl = block.querySelector('.rsvp-general-notes');
+            var dietaryNotes = dietaryEl && dietaryEl.value.trim() ? dietaryEl.value.trim() : null;
+            var generalNotes = generalEl && generalEl.value.trim() ? generalEl.value.trim() : null;
+            var guestId = block.dataset.guestId;
+
+            if (rsvpResponse === 'yes') {
+                isAnyoneAttending = true;
+                lastSubmittedAttendingGuestIds.push(String(guestId));
+            }
+
+            var marriottStay = null;
+            var shuttleRsvp = null;
+            if (rsvpResponse === 'yes') {
+                marriottStay = getMarriottStayForGuestId(guestId);
+                if (marriottStay === 'yes') {
+                    shuttleRsvp = getShuttleRsvpForGuestId(guestId);
+                }
+            }
+
+            if (USE_MOCK_DATA) {
+                var mockPayload = {
+                    rsvp: rsvpResponse,
+                    meal_choice: mealChoice,
+                    dietary_notes: dietaryNotes,
+                    general_notes: generalNotes,
+                    marriott_stay: marriottStay,
+                    shuttle_rsvp: shuttleRsvp
+                };
+                var result = updateGuestMock(guestId, mockPayload);
+                if (!result.success) {
+                    throw new Error(result.error);
+                }
+            } else {
+                if (!updateClient) {
+                    throw new Error('Supabase client not initialized');
+                }
+                var updatePayload = {
+                    rsvp: rsvpResponse,
+                    meal_choice: mealChoice,
+                    dietary_notes: dietaryNotes,
+                    general_notes: generalNotes,
+                    marriott_stay: marriottStay,
+                    shuttle_rsvp: shuttleRsvp,
+                    updated_at: new Date().toISOString()
+                };
+                var res = await updateClient.from('guests').update(updatePayload).eq('id', guestId);
+                if (res.error) {
+                    throw res.error;
+                }
+            }
+        }
+
+        showRsvpSuccessPage(isAnyoneAttending);
+    } catch (err) {
+        console.error('Error submitting RSVP:', err);
+        alert('An error occurred while submitting your RSVP. Please try again.');
+    }
+}
+
+function clearWizardStepDom() {
+    var shuttleC = document.getElementById('rsvpShuttleBlocksContainer');
+    if (shuttleC) shuttleC.innerHTML = '';
+    var ind = document.getElementById('rsvpWizardIndicator');
+    if (ind) ind.textContent = '';
+}
+
+function resetSuccessSection() {
+    lastSubmittedAttendingGuestIds = [];
+    var emailSection = document.getElementById('successEmailSection');
+    var emailWrap = document.getElementById('successEmailBlocksContainer');
+    var emailStatus = document.getElementById('successEmailStatus');
+    var sendBtn = document.getElementById('successSendEmailBtn');
+    if (emailSection) emailSection.style.display = 'none';
+    if (emailWrap) emailWrap.innerHTML = '';
+    if (emailStatus) {
+        emailStatus.textContent = '';
+        emailStatus.classList.remove('success-email-sent');
+    }
+    if (sendBtn) {
+        sendBtn.disabled = false;
+        sendBtn.style.display = '';
+    }
+}
+
 async function openRsvpFormForSelectedGuests() {
     if (selectedGuestIds.size === 0) return;
 
-    const selected = matchedGuests.filter(function (g) {
-        return selectedGuestIds.has(String(g.id));
-    });
+    const selected = getSelectedGuests();
     currentRsvpGuests = selected;
 
     const names = selected.map(function (g) {
@@ -691,7 +1270,9 @@ async function openRsvpFormForSelectedGuests() {
     });
     document.getElementById('guestGreeting').textContent = buildRsvpGreeting(names);
 
-    const container = document.getElementById('rsvpBlocksContainer');
+    clearWizardStepDom();
+
+    const container = getWeddingBlocksRoot();
     container.innerHTML = selected.map(buildGuestBlockHTML).join('');
 
     selected.forEach(function (g) {
@@ -712,24 +1293,35 @@ async function openRsvpFormForSelectedGuests() {
         if (gen && g.general_notes) gen.value = g.general_notes;
     });
 
-    const songInput = document.getElementById('songRequest');
-    songInput.value = '';
-    for (let i = 0; i < selected.length; i++) {
-        if (selected[i].song_request) {
-            songInput.value = selected[i].song_request;
-            break;
-        }
-    }
-
-    updateSongGroupVisibility();
+    setActiveWizardStep('wedding');
+    updateWeddingNavButtons();
+    updateWizardIndicatorText('wedding');
     document.getElementById('guestSelectionSection').style.display = 'none';
+    document.getElementById('rsvpStatusSection').style.display = 'none';
+    document.getElementById('successSection').style.display = 'none';
     document.getElementById('rsvpFormSection').style.display = 'block';
+}
+
+function resetRsvpFlow() {
+    var weddingRoot = getWeddingBlocksRoot();
+    if (weddingRoot) weddingRoot.innerHTML = '';
+    clearWizardStepDom();
+    resetSuccessSection();
+    setActiveWizardStep('wedding');
+    currentRsvpGuests = [];
+    selectedGuestIds = new Set();
+    lastSubmittedAttendingGuestIds = [];
+    document.getElementById('rsvpFormSection').style.display = 'none';
+    document.getElementById('rsvpStatusSection').style.display = 'none';
+    document.getElementById('guestSelectionSection').style.display = 'none';
+    document.getElementById('successSection').style.display = 'none';
+    document.getElementById('nameLookupSection').style.display = 'block';
 }
 
 const continueToRsvpBtn = document.getElementById('continueToRsvpBtn');
 if (continueToRsvpBtn) {
     continueToRsvpBtn.addEventListener('click', function () {
-        openRsvpFormForSelectedGuests();
+        continueFromGuestSelection();
     });
 }
 
@@ -749,9 +1341,9 @@ function updateGuestMock(guestId, updates) {
     return { success: false, error: 'Guest not found' };
 }
 
-const rsvpDetailsForm = document.getElementById('rsvpDetailsForm');
-if (rsvpDetailsForm) {
-    rsvpDetailsForm.addEventListener('change', function (e) {
+const rsvpWeddingFormWrap = document.getElementById('rsvpWeddingFormWrap');
+if (rsvpWeddingFormWrap) {
+    rsvpWeddingFormWrap.addEventListener('change', function (e) {
         const t = e.target;
         if (t && t.classList && t.classList.contains('rsvp-guest-response')) {
             const block = t.closest('.rsvp-guest-block');
@@ -761,116 +1353,79 @@ if (rsvpDetailsForm) {
                 } else {
                     showAttendingFieldsForBlock(block, false);
                 }
-                updateSongGroupVisibility();
+                updateWeddingNavButtons();
             }
-        }
-    });
-
-    rsvpDetailsForm.addEventListener('submit', async function (e) {
-        e.preventDefault();
-
-        if (!currentRsvpGuests || currentRsvpGuests.length === 0) {
-            alert('Error: Guest information not found. Please start over.');
-            return;
-        }
-
-        const songRequest = document.getElementById('songRequest').value.trim() || null;
-        const container = document.getElementById('rsvpBlocksContainer');
-        const blocks = container ? container.querySelectorAll('.rsvp-guest-block') : [];
-
-        try {
-            const updateClient = window.rsvpSupabaseClient || supabaseClient;
-            let isAnyoneAttending = false;
-
-            for (let i = 0; i < blocks.length; i++) {
-                const block = blocks[i];
-                const rsvpEl = block.querySelector('.rsvp-guest-response');
-                if (!rsvpEl) continue;
-                const rsvpResponse = rsvpEl.value;
-                const mealEl = block.querySelector('.rsvp-meal-choice');
-                const mealChoice = rsvpResponse === 'yes' && mealEl ? mealEl.value || null : null;
-                const dietaryEl = block.querySelector('.rsvp-dietary-notes');
-                const generalEl = block.querySelector('.rsvp-general-notes');
-                const dietaryNotes = dietaryEl && dietaryEl.value.trim() ? dietaryEl.value.trim() : null;
-                const generalNotes = generalEl && generalEl.value.trim() ? generalEl.value.trim() : null;
-                const guestId = block.dataset.guestId;
-
-                if (rsvpResponse === 'yes') {
-                    isAnyoneAttending = true;
-                }
-
-                if (USE_MOCK_DATA) {
-                    const result = updateGuestMock(guestId, {
-                        rsvp: rsvpResponse,
-                        meal_choice: mealChoice,
-                        song_request: songRequest,
-                        dietary_notes: dietaryNotes,
-                        general_notes: generalNotes
-                    });
-                    if (!result.success) {
-                        throw new Error(result.error);
-                    }
-                } else {
-                    if (!updateClient) {
-                        throw new Error('Supabase client not initialized');
-                    }
-                    const { error } = await updateClient
-                        .from('guests')
-                        .update({
-                            rsvp: rsvpResponse,
-                            meal_choice: mealChoice,
-                            song_request: songRequest,
-                            dietary_notes: dietaryNotes,
-                            general_notes: generalNotes,
-                            updated_at: new Date().toISOString()
-                        })
-                        .eq('id', guestId);
-
-                    if (error) {
-                        throw error;
-                    }
-                }
-            }
-
-            const successMsgAttending = document.getElementById('successMessageAttending');
-            const successMsgNotAttending = document.getElementById('successMessageNotAttending');
-
-            if (!successMsgAttending || !successMsgNotAttending) {
-                console.error('Success message elements not found. Please refresh the page.');
-                document.getElementById('rsvpFormSection').style.display = 'none';
-                document.getElementById('successSection').style.display = 'block';
-                return;
-            }
-
-            if (isAnyoneAttending) {
-                successMsgAttending.style.display = 'block';
-                successMsgNotAttending.style.display = 'none';
-            } else {
-                successMsgAttending.style.display = 'none';
-                successMsgNotAttending.style.display = 'block';
-            }
-
-            document.getElementById('rsvpFormSection').style.display = 'none';
-            document.getElementById('successSection').style.display = 'block';
-        } catch (err) {
-            console.error('Error submitting RSVP:', err);
-            alert('An error occurred while submitting your RSVP. Please try again.');
         }
     });
 }
 
-// Back button handler from RSVP form
+const rsvpShuttleFormWrap = document.getElementById('rsvpShuttleFormWrap');
+if (rsvpShuttleFormWrap) {
+    rsvpShuttleFormWrap.addEventListener('change', function (e) {
+        var t = e.target;
+        if (t && t.classList && t.classList.contains('rsvp-marriott-stay')) {
+            var row = t.closest('.rsvp-shuttle-guest-block');
+            if (row) {
+                updateMarriottShuttleFollowup(row);
+            }
+        }
+    });
+}
+
+function wireIfPresent(id, handler) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('click', handler);
+}
+
+wireIfPresent('rsvpWeddingNextBtn', async function () {
+    if (!validateWeddingStep()) return;
+    buildHotelShuttleStepHtml();
+    setActiveWizardStep('shuttle');
+});
+
+wireIfPresent('rsvpShuttleSubmitBtn', async function () {
+    if (!validateShuttleStep()) return;
+    await performRsvpSubmit();
+});
+
+wireIfPresent('successSendEmailBtn', async function () {
+    await sendSuccessConfirmationEmails();
+});
+
+wireIfPresent('successReturnHomeBtn', function () {
+    window.location.href = 'index.html';
+});
+
+wireIfPresent('rsvpShuttleBackBtn', function () {
+    setActiveWizardStep('wedding');
+});
+
+wireIfPresent('rsvpStatusActionBtn', function () {
+    openRsvpFormForSelectedGuests();
+});
+
+wireIfPresent('rsvpStatusBackBtn', function () {
+    document.getElementById('rsvpStatusSection').style.display = 'none';
+    document.getElementById('guestSelectionSection').style.display = 'block';
+});
+
+// Back button handler from RSVP form → status summary or guest selection
 const backBtn = document.getElementById('backBtn');
 if (backBtn) {
     backBtn.addEventListener('click', function () {
-        const form = document.getElementById('rsvpDetailsForm');
-        if (form) form.reset();
-        const blocks = document.getElementById('rsvpBlocksContainer');
-        if (blocks) blocks.innerHTML = '';
-        currentRsvpGuests = [];
-        selectedGuestIds = new Set();
+        var weddingRoot = getWeddingBlocksRoot();
+        if (weddingRoot) weddingRoot.innerHTML = '';
+        clearWizardStepDom();
+        setActiveWizardStep('wedding');
         document.getElementById('rsvpFormSection').style.display = 'none';
-        document.getElementById('nameLookupSection').style.display = 'block';
+
+        var selected = getSelectedGuests();
+        if (partyHasAnyRsvp(selected)) {
+            openRsvpStatusForSelectedGuests();
+        } else {
+            document.getElementById('rsvpStatusSection').style.display = 'none';
+            document.getElementById('guestSelectionSection').style.display = 'block';
+        }
     });
 }
 
@@ -878,8 +1433,6 @@ if (backBtn) {
 const backToNameBtn = document.getElementById('backToNameBtn');
 if (backToNameBtn) {
     backToNameBtn.addEventListener('click', function () {
-        selectedGuestIds = new Set();
-        document.getElementById('guestSelectionSection').style.display = 'none';
-        document.getElementById('nameLookupSection').style.display = 'block';
+        resetRsvpFlow();
     });
 }

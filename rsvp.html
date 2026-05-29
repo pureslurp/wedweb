@@ -99,29 +99,62 @@
                 <button type="button" class="back-btn" id="backToNameBtn">Go Back</button>
             </div>
 
-            <!-- Step 2: RSVP Form -->
-            <div class="rsvp-content" id="rsvpFormSection" style="display: none;">
-                <h1 class="rsvp-title">Complete Your RSVP</h1>
-                <p class="rsvp-subtitle" id="guestGreeting"></p>
-                
-                <form class="rsvp-form" id="rsvpDetailsForm">
-                    <div id="rsvpBlocksContainer"></div>
+            <!-- RSVP status summary (before edit) -->
+            <div class="rsvp-content" id="rsvpStatusSection" style="display: none;">
+                <h1 class="rsvp-title">Your RSVP</h1>
+                <p class="rsvp-subtitle" id="rsvpStatusGreeting"></p>
+                <div id="rsvpStatusBlocksContainer"></div>
+                <p id="rsvpStatusHint" class="form-hint rsvp-status-hint" style="display: none;">Need to change something? Tap Edit RSVP.</p>
+                <button type="button" class="submit-btn" id="rsvpStatusActionBtn">Edit RSVP</button>
+                <button type="button" class="back-btn" id="rsvpStatusBackBtn">Go Back</button>
+            </div>
 
-                    <div class="form-group" id="songRequestGroup" style="display: none;">
-                        <label for="songRequest" class="form-label">Song Request (Optional)</label>
-                        <input 
-                            type="text" 
-                            id="songRequest" 
-                            name="songRequest" 
-                            class="form-input" 
-                            placeholder="Artist - Song Title"
-                        >
-                        <small id="songRequestHint" class="form-hint">Saved for everyone in this RSVP</small>
+            <!-- RSVP wizard: wedding → hotel & shuttle -->
+            <div class="rsvp-content" id="rsvpFormSection" style="display: none;">
+                <p class="rsvp-subtitle" id="guestGreeting"></p>
+                <p class="rsvp-wizard-indicator" id="rsvpWizardIndicator" aria-live="polite"></p>
+
+                <!-- Step 1: Wedding -->
+                <div id="rsvpStepWedding" class="rsvp-wizard-step is-active">
+                    <h1 class="rsvp-title">Wedding RSVP</h1>
+
+                    <div class="rsvp-venue-summary" role="region" aria-labelledby="rsvp-venue-heading">
+                        <h2 id="rsvp-venue-heading" class="rsvp-venue-heading">Wedding day</h2>
+                        <p class="rsvp-venue-date"><strong>Saturday, September 5, 2026</strong></p>
+                        <ul class="rsvp-venue-list">
+                            <li>Ceremony begins at <strong>5:30 PM</strong></li>
+                            <li>Cocktail hour <strong>6:00&ndash;7:00 PM</strong></li>
+                            <li>Reception <strong>7:00&ndash;11:30 PM</strong></li>
+                        </ul>
+                        <p class="rsvp-venue-address">
+                            <strong>Venue</strong><br>
+                            30 N Saginaw St Suite #300<br>
+                            Pontiac, MI 48342
+                        </p>
+                        <p class="rsvp-venue-travel-link">Hotel block and shuttle details: <a href="travel.html">Travel &amp; Stay</a></p>
                     </div>
 
-                    <button type="submit" class="submit-btn" id="submitRsvpBtn">Submit RSVP</button>
-                    <button type="button" class="back-btn" id="backBtn">Go Back</button>
-                </form>
+                    <div class="rsvp-form" id="rsvpWeddingFormWrap">
+                        <div id="rsvpWeddingBlocksContainer"></div>
+
+                        <button type="button" class="submit-btn" id="rsvpWeddingNextBtn">Next</button>
+                        <button type="button" class="submit-btn" id="rsvpWeddingSubmitBtn" style="display: none;">Submit RSVP</button>
+                        <button type="button" class="back-btn" id="backBtn">Go Back</button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Hotel stay & shuttle (everyone; shuttle only if staying at Marriott) -->
+                <div id="rsvpStepShuttle" class="rsvp-wizard-step" style="display: none;">
+                    <h1 class="rsvp-title">Hotel &amp; shuttle</h1>
+                    <p class="rsvp-wizard-lede">For each guest who is <strong>attending the wedding</strong>, tell us whether you&rsquo;re staying at our room-block hotel. We only ask about the shuttle if you are.</p>
+                    <p class="rsvp-venue-travel-link">Room block and rates: <a href="travel.html">Travel &amp; Stay</a></p>
+
+                    <div class="rsvp-form" id="rsvpShuttleFormWrap">
+                        <div id="rsvpShuttleBlocksContainer"></div>
+                        <button type="button" class="submit-btn" id="rsvpShuttleSubmitBtn">Submit RSVP</button>
+                        <button type="button" class="back-btn" id="rsvpShuttleBackBtn">Back</button>
+                    </div>
+                </div>
             </div>
 
             <!-- Success Message -->
@@ -130,7 +163,17 @@
                 <p class="rsvp-subtitle">Your RSVP has been successfully submitted.</p>
                 <p class="success-message" id="successMessageAttending">We look forward to celebrating with you!</p>
                 <p class="success-message" id="successMessageNotAttending" style="display: none;">We're sorry you can't make it. You will be missed!</p>
-                <button type="button" class="submit-btn" onclick="window.location.href='index.html'">Return to Home</button>
+
+                <div id="successEmailSection" class="rsvp-success-email" style="display: none;">
+                    <p class="rsvp-wizard-lede">Want an email copy of your RSVP? Optionally leave an address below and we&rsquo;ll send a confirmation.</p>
+                    <div class="rsvp-form" id="successEmailFormWrap">
+                        <div id="successEmailBlocksContainer"></div>
+                        <button type="button" class="submit-btn" id="successSendEmailBtn">Send confirmation email</button>
+                        <p id="successEmailStatus" class="form-hint" aria-live="polite"></p>
+                    </div>
+                </div>
+
+                <button type="button" class="submit-btn" id="successReturnHomeBtn">Return to Home</button>
             </div>
         </div>
         
