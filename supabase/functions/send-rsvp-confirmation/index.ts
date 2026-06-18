@@ -12,6 +12,18 @@ const corsHeaders: Record<string, string> = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+const MEAL_LABELS: Record<string, string> = {
+  beef: "Beef Tenderloin with Demi-Glace (8oz) — asparagus & mashed potatoes",
+  chicken:
+    "Grilled Chicken Breast with Basil Pesto (10oz) — asparagus & mashed potatoes",
+  vegetarian: "Gnocchi Bolognese — Vegan & Vegetarian",
+};
+
+function formatMealLabel(meal: string | null): string {
+  if (!meal) return "";
+  return MEAL_LABELS[meal] ?? meal;
+}
+
 type GuestRow = {
   first_name: string;
   last_name: string;
@@ -42,7 +54,7 @@ function buildPlainBody(g: GuestRow): string {
     `- Wedding: ${g.rsvp === "yes" ? "Attending" : "Not attending"}`,
   ];
   if (g.rsvp === "yes" && g.meal_choice) {
-    lines.push(`- Meal choice: ${g.meal_choice}`);
+    lines.push(`- Meal choice: ${formatMealLabel(g.meal_choice)}`);
   }
   if (g.rsvp === "yes") {
     lines.push(

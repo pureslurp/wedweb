@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS guests (
     family TEXT,
     plus_one_id UUID REFERENCES guests(id),
     rsvp TEXT CHECK (rsvp IN ('yes', 'no')),
-    meal_choice TEXT CHECK (meal_choice IN ('chicken', 'beef', 'fish', 'vegetarian')),
+    meal_choice TEXT CHECK (meal_choice IN ('chicken', 'beef', 'vegetarian')),
     song_request TEXT,
     dietary_notes TEXT,
     general_notes TEXT,

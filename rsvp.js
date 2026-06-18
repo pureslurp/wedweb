@@ -41,6 +41,27 @@ document.addEventListener('DOMContentLoaded', function() {
 // Configuration
 const USE_MOCK_DATA = false; // Set to false when using real Supabase
 
+const MEAL_CHOICES = [
+    {
+        value: 'beef',
+        label: 'Beef Tenderloin with Demi-Glace (8oz) — asparagus & mashed potatoes',
+    },
+    {
+        value: 'chicken',
+        label: 'Grilled Chicken Breast with Basil Pesto (10oz) — asparagus & mashed potatoes',
+    },
+    {
+        value: 'vegetarian',
+        label: 'Gnocchi Bolognese — Vegan & Vegetarian',
+    },
+];
+
+function buildMealChoiceOptionsHtml() {
+    return MEAL_CHOICES.map(function (choice) {
+        return '<option value="' + choice.value + '">' + escapeHtml(choice.label) + '</option>';
+    }).join('');
+}
+
 // Prevent multiple script loads - check if already initialized
 if (window.rsvpSystemInitialized) {
     console.warn('rsvp.js has already been loaded. Skipping re-initialization.');
@@ -181,6 +202,21 @@ function exactNameMatchMock(fnLower, lnLower, guest) {
     return (gfn === fnLower && gln === lnLower) || (!!nick && nick === fnLower && gln === lnLower);
 }
 
+function expandMockLookupSeeds(seeds) {
+    var matchesArray = [];
+    var addedIds = new Set();
+    seeds.forEach(function (guest) {
+        var linkedGuests = getLinkedGuests(guest);
+        linkedGuests.forEach(function (linkedGuest) {
+            if (!addedIds.has(linkedGuest.id)) {
+                addedIds.add(linkedGuest.id);
+                matchesArray.push(linkedGuest);
+            }
+        });
+    });
+    return matchesArray;
+}
+
 // Mock: exact match (legal or nickname + last), else Levenshtein within RSVP_FUZZY_MAX_DISTANCE; then expand linked guests
 function lookupGuestsMock(firstName, lastName) {
     var fn = (firstName || '').trim().toLowerCase();
@@ -194,19 +230,7 @@ function lookupGuestsMock(firstName, lastName) {
         usedFuzzy = seeds.length > 0;
     }
 
-    var matchesArray = [];
-    var addedIds = new Set();
-    seeds.forEach(function (guest) {
-        var linkedGuests = getLinkedGuests(guest);
-        linkedGuests.forEach(function (linkedGuest) {
-            if (!addedIds.has(linkedGuest.id)) {
-                addedIds.add(linkedGuest.id);
-                matchesArray.push(linkedGuest);
-            }
-        });
-    });
-
-    return { guests: matchesArray, usedFuzzy: usedFuzzy };
+    return { guests: expandMockLookupSeeds(seeds), usedFuzzy: usedFuzzy };
 }
 
 // Helper function to get plus one from Supabase
@@ -303,6 +327,24 @@ async function expandPlusOneEdgesSupabase(client, linked, add) {
 }
 
 // Lookup: exact ilike on first+last, plus nickname+last if column exists; else fuzzy (Levenshtein) on full guest list
+async function expandSupabaseLookupSeeds(initialMatches) {
+    var seen = new Set();
+    var matchesArray = [];
+
+    for (var i = 0; i < initialMatches.length; i++) {
+        var guest = initialMatches[i];
+        var linkedGuests = await getLinkedGuestsSupabase(guest);
+        linkedGuests.forEach(function (linkedGuest) {
+            if (!seen.has(linkedGuest.id)) {
+                seen.add(linkedGuest.id);
+                matchesArray.push(linkedGuest);
+            }
+        });
+    }
+
+    return matchesArray;
+}
+
 async function lookupGuestsSupabase(firstName, lastName) {
     var client = window.rsvpSupabaseClient || supabaseClient;
 
@@ -362,21 +404,7 @@ async function lookupGuestsSupabase(firstName, lastName) {
         usedFuzzy = initialMatches.length > 0;
     }
 
-    var seen = new Set();
-    var matchesArray = [];
-
-    for (var i = 0; i < initialMatches.length; i++) {
-        var guest = initialMatches[i];
-        var linkedGuests = await getLinkedGuestsSupabase(guest);
-        linkedGuests.forEach(function (linkedGuest) {
-            if (!seen.has(linkedGuest.id)) {
-                seen.add(linkedGuest.id);
-                matchesArray.push(linkedGuest);
-            }
-        });
-    }
-
-    return { guests: matchesArray, usedFuzzy: usedFuzzy };
+    return { guests: await expandSupabaseLookupSeeds(initialMatches), usedFuzzy: usedFuzzy };
 }
 
 // Unified lookup — returns { guests, usedFuzzy }
@@ -410,7 +438,7 @@ if (nameLookupForm) {
     
     const { firstName, lastName } = parseFullName(fullName);
     if (!firstName || !lastName) {
-        errorMessage.textContent = 'Please enter your full name (e.g. Jane Doe).';
+        errorMessage.textContent = 'Please enter your first and last name (e.g. Jane Doe or Sagi Ortega).';
         errorMessage.style.display = 'block';
         return;
     }
@@ -490,16 +518,21 @@ function normalizeNamePart(s) {
         .replace(/\s+/g, ' ');
 }
 
-/** Smaller = closer match; compares typed "first last" to legal name and to "nickname last". */
+/** Smaller = closer match; compares typed "first last" to legal name and to nickname + last. */
 function fullNameDistance(queryFirst, queryLast, guest) {
     var fn = normalizeNamePart(guest.first_name);
     var ln = normalizeNamePart(guest.last_name);
     var nick = guest.nickname ? normalizeNamePart(guest.nickname) : '';
-    var q = normalizeNamePart(queryFirst) + ' ' + normalizeNamePart(queryLast);
+    var qFirst = normalizeNamePart(queryFirst);
+    var qLast = normalizeNamePart(queryLast);
+    var q = qFirst + ' ' + qLast;
     var legal = fn + ' ' + ln;
     var best = levenshtein(q, legal);
-    if (nick) {
-        best = Math.min(best, levenshtein(q, nick + ' ' + ln));
+    if (nick && qLast === ln) {
+        var nickFirstDist = levenshtein(qFirst, nick);
+        if (nickFirstDist <= 1) {
+            best = Math.min(best, nickFirstDist);
+        }
     }
     return best;
 }
@@ -557,10 +590,7 @@ function buildGuestBlockHTML(guest) {
                     '<label class="form-label">Meal choice</label>' +
                     '<select class="form-input rsvp-meal-choice">' +
                         '<option value="">Please select...</option>' +
-                        '<option value="chicken">Chicken</option>' +
-                        '<option value="beef">Beef</option>' +
-                        '<option value="fish">Fish</option>' +
-                        '<option value="vegetarian">Vegetarian</option>' +
+                        buildMealChoiceOptionsHtml() +
                     '</select>' +
                 '</div>' +
                 '<div class="form-group">' +
@@ -696,6 +726,10 @@ function continueFromGuestSelection() {
 
 function formatMealLabel(meal) {
     if (!meal) return '';
+    var match = MEAL_CHOICES.find(function (choice) {
+        return choice.value === meal;
+    });
+    if (match) return match.label;
     return String(meal).charAt(0).toUpperCase() + String(meal).slice(1);
 }
 
