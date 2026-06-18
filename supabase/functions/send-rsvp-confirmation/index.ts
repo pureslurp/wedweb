@@ -46,10 +46,6 @@ function buildPlainBody(g: GuestRow): string {
     "Reception: 7:00–11:30 PM",
     "Venue: 30 N Saginaw St Suite #300, Pontiac, MI 48342",
     "",
-    "Day-after gathering — Sunday, September 6, 2026",
-    "Time: 1:00 PM",
-    "Location: 217 Park Island Dr, Lake Orion, MI 48362",
-    "",
     `Here is what we have on file for ${g.first_name} ${g.last_name}:`,
     `- Wedding: ${g.rsvp === "yes" ? "Attending" : "Not attending"}`,
   ];
@@ -77,17 +73,6 @@ function buildPlainBody(g: GuestRow): string {
         }`,
       );
     }
-  }
-  if (g.day_after_invited) {
-    lines.push(
-      `- Day-after gathering: ${
-        g.day_after_rsvp === "yes"
-          ? "Attending"
-          : g.day_after_rsvp === "no"
-            ? "Not attending"
-            : "—"
-      }`,
-    );
   }
   lines.push("", "Travel & hotel details: https://savandsean.com/travel.html");
   lines.push("", "— Savannah & Sean");

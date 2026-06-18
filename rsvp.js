@@ -971,6 +971,8 @@ function buildSuccessEmailFormHtml(attendingGuestIds) {
         if (!g) return;
         var fn = escapeHtml(g.first_name);
         var ln = escapeHtml(g.last_name);
+        var savedEmail = g.email ? String(g.email).trim() : '';
+        var emailValueAttr = savedEmail ? ' value="' + escapeHtml(savedEmail) + '"' : '';
         var html =
             '<div class="guest-section rsvp-success-email-guest-block" data-guest-id="' +
             escapeHtml(String(g.id)) +
@@ -978,7 +980,9 @@ function buildSuccessEmailFormHtml(attendingGuestIds) {
             '<h3 class="section-title">' + fn + ' ' + ln + '</h3>' +
             '<div class="form-group">' +
             '<label class="form-label">Email (optional)</label>' +
-            '<input type="email" class="form-input rsvp-success-guest-email" autocomplete="email" placeholder="you@example.com">' +
+            '<input type="email" class="form-input rsvp-success-guest-email" autocomplete="email" placeholder="you@example.com"' +
+            emailValueAttr +
+            '>' +
             '</div>' +
             '</div>';
         wrap.insertAdjacentHTML('beforeend', html);
