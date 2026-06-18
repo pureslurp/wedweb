@@ -2622,6 +2622,16 @@ body.travel-page .footer {
     max-width: 30rem;
 }
 
+.travel-local-distance-note {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: #7a7268;
+    margin: 0.65rem auto 0;
+    max-width: 30rem;
+    text-align: center;
+}
+
 .travel-guide {
     position: relative;
     background: var(--travel-paper);
@@ -2653,6 +2663,15 @@ body.travel-page .footer {
     border-top: 1px solid var(--travel-line);
 }
 
+.travel-guide-city-row {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+}
+
 .travel-guide-city {
     font-family: "Cormorant Garamond", Georgia, serif;
     font-size: clamp(0.72rem, 1.8vw, 0.78rem);
@@ -2661,9 +2680,21 @@ body.travel-page .footer {
     letter-spacing: 0.22em;
     text-transform: uppercase;
     color: var(--travel-accent);
-    margin: 0 0 0.85rem;
+    margin: 0;
     padding: 0;
     border: none;
+}
+
+.travel-guide-distance {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 0.78rem;
+    font-style: italic;
+    line-height: 1.4;
+    color: #6a625a;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-left: auto;
+    text-align: right;
 }
 
 .travel-guide-entries {
