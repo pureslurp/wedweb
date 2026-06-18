@@ -28,6 +28,10 @@
     <meta name="apple-mobile-web-app-title" content="Savannah & Sean">
     <meta name="apple-mobile-web-app-capable" content="yes">
     
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -69,6 +73,56 @@
             </div>
         </div>
     </main>
+
+    <section class="day-schedule" aria-labelledby="day-schedule-heading">
+        <div class="day-schedule-inner">
+            <header class="day-schedule-header">
+                <h2 id="day-schedule-heading" class="day-schedule-title">The Day</h2>
+                <div class="day-schedule-rule" role="presentation"></div>
+                <p class="day-schedule-venue">The Treasury · Pontiac, Michigan</p>
+            </header>
+
+            <ol class="day-schedule-timeline">
+                <li class="day-schedule-stop">
+                    <div class="day-schedule-marker" aria-hidden="true">
+                        <span class="day-schedule-dot"></span>
+                        <span class="day-schedule-line"></span>
+                    </div>
+                    <article class="day-schedule-entry">
+                        <time class="day-schedule-time" datetime="2026-09-05T17:30">5:30&ndash;6:00 PM</time>
+                        <h3 class="day-schedule-event">Ceremony</h3>
+                        <p class="day-schedule-detail">We&rsquo;ll exchange vows surrounded by the people we love most.</p>
+                    </article>
+                </li>
+                <li class="day-schedule-stop">
+                    <div class="day-schedule-marker" aria-hidden="true">
+                        <span class="day-schedule-dot"></span>
+                        <span class="day-schedule-line"></span>
+                    </div>
+                    <article class="day-schedule-entry">
+                        <p class="day-schedule-time">6:00&ndash;7:00 PM</p>
+                        <h3 class="day-schedule-event">Happy Hour</h3>
+                        <p class="day-schedule-detail">Cocktails and light bites while we mingle and celebrate.</p>
+                    </article>
+                </li>
+                <li class="day-schedule-stop day-schedule-stop--last">
+                    <div class="day-schedule-marker" aria-hidden="true">
+                        <span class="day-schedule-dot"></span>
+                    </div>
+                    <article class="day-schedule-entry">
+                        <p class="day-schedule-time">7:00&ndash;11:30 PM</p>
+                        <h3 class="day-schedule-event">Reception</h3>
+                        <p class="day-schedule-detail">Dinner, dancing, and an open bar until we close the night.</p>
+                    </article>
+                </li>
+            </ol>
+
+            <p class="day-schedule-address">
+                30 N Saginaw St Suite #300<br>
+                Pontiac, MI 48342
+            </p>
+        </div>
+    </section>
 
     <!-- Footer -->
     <footer class="footer">
