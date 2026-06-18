@@ -2124,6 +2124,10 @@ body.travel-page .footer {
     animation-delay: 0.4s;
 }
 
+.travel-container > .travel-reveal:nth-child(5) {
+    animation-delay: 0.52s;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .travel-reveal {
         animation: none;
@@ -2218,6 +2222,10 @@ body.travel-page .footer {
     line-height: 1.55;
     color: #6a625a;
     margin: 0;
+}
+
+.travel-hotel-card + .travel-hotel-card {
+    margin-top: clamp(1.75rem, 5vw, 2.5rem);
 }
 
 .travel-hotel-card {
@@ -2365,6 +2373,212 @@ body.travel-page .footer {
     max-width: 30rem;
     margin-left: auto;
     margin-right: auto;
+}
+
+.travel-local {
+    margin-top: clamp(2.5rem, 7vw, 3.5rem);
+}
+
+.travel-local-header {
+    text-align: center;
+    margin-bottom: clamp(1.75rem, 5vw, 2.35rem);
+}
+
+.travel-local-eyebrow {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: clamp(0.82rem, 2.2vw, 0.92rem);
+    font-weight: 500;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--travel-accent);
+    margin: 0 0 0.55rem;
+}
+
+.travel-local-title {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: clamp(1.85rem, 5vw, 2.35rem);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--travel-ink);
+    margin: 0 0 1rem;
+}
+
+.travel-local-header .travel-rule {
+    margin-bottom: 1.1rem;
+}
+
+.travel-local-lede {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(0.98rem, 2.4vw, 1.05rem);
+    line-height: 1.7;
+    color: var(--travel-muted);
+    font-style: italic;
+    margin: 0 auto;
+    max-width: 30rem;
+}
+
+.travel-guide {
+    position: relative;
+    background: var(--travel-paper);
+    border-radius: 2px;
+    padding: clamp(1.5rem, 4vw, 2rem) clamp(1.15rem, 3.5vw, 1.65rem);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.9) inset,
+        0 16px 44px rgba(44, 36, 28, 0.09),
+        0 3px 10px rgba(44, 36, 28, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.72);
+    display: grid;
+    gap: clamp(1.5rem, 4vw, 2rem);
+}
+
+.travel-guide::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 4.5rem;
+    height: 4.5rem;
+    background: linear-gradient(225deg, rgba(139, 115, 85, 0.07) 0%, transparent 55%);
+    pointer-events: none;
+    border-radius: 0 2px 0 0;
+}
+
+.travel-guide-region + .travel-guide-region {
+    padding-top: clamp(1.35rem, 4vw, 1.75rem);
+    border-top: 1px solid var(--travel-line);
+}
+
+.travel-guide-city {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: clamp(0.72rem, 1.8vw, 0.78rem);
+    font-weight: 600;
+    font-style: normal;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--travel-accent);
+    margin: 0 0 0.85rem;
+    padding: 0;
+    border: none;
+}
+
+.travel-guide-entries {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.65rem;
+}
+
+.travel-guide-entry {
+    padding: 0.85rem 0.95rem 0.9rem;
+    background: rgba(255, 255, 255, 0.42);
+    border: 1px solid rgba(139, 115, 85, 0.1);
+    border-radius: 2px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.travel-guide-entry:hover {
+    border-color: rgba(139, 115, 85, 0.28);
+    box-shadow: 0 6px 20px rgba(139, 115, 85, 0.1);
+    transform: translateY(-1px);
+}
+
+.travel-guide-entry-head {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.4rem;
+}
+
+.travel-guide-name {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: clamp(1.08rem, 2.8vw, 1.2rem);
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--travel-ink);
+    text-decoration: none;
+    transition: color 0.2s ease;
+    flex: 1;
+    min-width: 0;
+}
+
+.travel-guide-name::after {
+    content: "↗";
+    display: inline-block;
+    margin-left: 0.3rem;
+    font-size: 0.72em;
+    opacity: 0;
+    transform: translate(-2px, 1px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.travel-guide-name:hover,
+.travel-guide-name:focus-visible {
+    color: var(--travel-accent-deep);
+}
+
+.travel-guide-name:hover::after,
+.travel-guide-name:focus-visible::after {
+    opacity: 0.65;
+    transform: translate(0, 0);
+}
+
+.travel-guide-name:focus-visible {
+    outline: 2px solid var(--travel-accent-deep);
+    outline-offset: 3px;
+    border-radius: 1px;
+}
+
+.travel-guide-kind {
+    font-size: 0.58rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--travel-accent);
+    padding: 0.22rem 0.5rem;
+    border: 1px solid rgba(139, 115, 85, 0.28);
+    border-radius: 999px;
+    background: rgba(255, 253, 250, 0.75);
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-left: auto;
+    text-align: right;
+}
+
+.travel-guide-blurb {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(0.84rem, 2vw, 0.9rem);
+    line-height: 1.62;
+    color: #6a625a;
+    margin: 0;
+}
+
+@media (max-width: 640px) {
+    .travel-guide {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .travel-guide-entry {
+        padding: 0.75rem 0.8rem 0.8rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .travel-guide-entry {
+        transition: none;
+    }
+
+    .travel-guide-entry:hover {
+        transform: none;
+    }
+
+    .travel-guide-name::after {
+        opacity: 0.45;
+        transform: none;
+    }
 }
 
 @media (max-width: 640px) {
