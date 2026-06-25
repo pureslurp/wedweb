@@ -365,6 +365,17 @@ body {
     margin: 0 0 0.45rem;
 }
 
+.day-schedule-subtitle {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: clamp(0.98rem, 2.4vw, 1.06rem);
+    font-weight: 500;
+    font-style: italic;
+    letter-spacing: 0.03em;
+    color: var(--schedule-accent-deep);
+    margin: -0.2rem 0 0.55rem;
+    line-height: 1.4;
+}
+
 .day-schedule-detail {
     font-family: Georgia, "Times New Roman", serif;
     font-size: clamp(0.88rem, 2.1vw, 0.94rem);
