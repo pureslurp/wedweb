@@ -2542,6 +2542,15 @@ body.travel-page .footer {
     text-align: center;
 }
 
+.travel-book-note {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: #7a7268;
+    margin: 0.85rem auto 0;
+    max-width: 28rem;
+}
+
 .travel-btn {
     display: inline-flex;
     align-items: center;
