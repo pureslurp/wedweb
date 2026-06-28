@@ -2344,6 +2344,10 @@ body.travel-page .footer {
     animation-delay: 0.52s;
 }
 
+.travel-container > .travel-reveal:nth-child(6) {
+    animation-delay: 0.64s;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .travel-reveal {
         animation: none;
@@ -2598,6 +2602,18 @@ body.travel-page .footer {
     max-width: 30rem;
     margin-left: auto;
     margin-right: auto;
+}
+
+.travel-more-hotels a {
+    color: var(--travel-accent-deep);
+    text-decoration: underline;
+    text-decoration-color: rgba(94, 77, 58, 0.35);
+    text-underline-offset: 0.15em;
+}
+
+.travel-more-hotels a:hover {
+    color: var(--travel-accent);
+    text-decoration-color: currentColor;
 }
 
 .travel-local {
