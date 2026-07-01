@@ -1934,6 +1934,12 @@ select.form-input {
     height: 100%;
     object-fit: cover;
     display: block;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+}
+
+.party-photo img.is-loaded {
+    opacity: 1;
 }
 
 .party-photo:empty::before {
