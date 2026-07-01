@@ -1869,7 +1869,7 @@ select.form-input {
 .party-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 4rem;
+    column-gap: 4rem;
     margin-top: 3rem;
 }
 
@@ -1900,6 +1900,10 @@ select.form-input {
     transition: transform 0.3s ease;
     animation: fadeIn 0.6s ease-in;
     width: 100%;
+}
+
+.party-column .party-member:last-child {
+    margin-bottom: 0;
 }
 
 .party-member:hover {
@@ -1969,13 +1973,95 @@ select.form-input {
     font-style: normal;
 }
 
+.member-bio {
+    width: 100%;
+    max-width: 550px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+}
+
+.member-bio--expandable .member-bio-collapse {
+    position: relative;
+    overflow: hidden;
+    transition: max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+}
+
+.member-bio--expandable:not(.is-expanded):not(.is-fully-visible) .member-bio-collapse::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2.4em;
+    background: linear-gradient(to bottom, rgba(250, 249, 247, 0), #faf9f7 85%);
+    pointer-events: none;
+}
+
+.member-bio--expandable .member-blurb {
+    margin-bottom: 0;
+}
+
+.bio-toggle[hidden] {
+    display: none;
+}
+
+.bio-toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    margin: 0.85rem auto 0;
+    padding: 0.9rem 0.75rem 0.35rem;
+    background: none;
+    border: none;
+    color: #8b7355;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-style: italic;
+    letter-spacing: 0.6px;
+    cursor: pointer;
+    transition: color 0.25s ease, opacity 0.25s ease;
+}
+
+.bio-toggle::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 32px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #8b7355 20%, #8b7355 80%, transparent);
+    opacity: 0.45;
+}
+
+.bio-toggle:hover,
+.bio-toggle:focus-visible {
+    color: #6b5740;
+    outline: none;
+}
+
+.bio-toggle-chevron {
+    display: inline-block;
+    width: 0.45rem;
+    height: 0.45rem;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: rotate(45deg) translateY(-1px);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.member-bio--expandable.is-expanded .bio-toggle-chevron {
+    transform: rotate(-135deg) translateY(1px);
+}
+
 /* Wedding Party Responsive Design */
 @media (min-width: 769px) {
-    /* Desktop: Ensure rows align by using consistent min-height and wider blurbs */
-    .party-member {
-        min-height: 480px;
-    }
-    
     .member-blurb {
         max-width: 550px;
     }
@@ -1983,7 +2069,7 @@ select.form-input {
 
 @media (max-width: 900px) {
     .party-grid {
-        gap: 3rem;
+        column-gap: 3rem;
     }
 
     .party-photo {
@@ -1993,10 +2079,6 @@ select.form-input {
 
     .member-name {
         font-size: 1.3rem;
-    }
-    
-    .party-member {
-        min-height: auto;
     }
 }
 
@@ -2016,7 +2098,15 @@ select.form-input {
 
     .party-grid {
         grid-template-columns: 1fr;
-        gap: 4rem;
+        row-gap: 4rem;
+    }
+
+    .party-member {
+        margin-bottom: 2.5rem;
+    }
+
+    .party-column .party-member:last-child {
+        margin-bottom: 0;
     }
 
     .column-title {
@@ -2026,6 +2116,10 @@ select.form-input {
     .party-photo {
         width: 180px;
         height: 180px;
+    }
+
+    .party-member:hover {
+        transform: none;
     }
 
     .member-name {
@@ -2057,15 +2151,15 @@ select.form-input {
     }
 
     .party-grid {
-        gap: 3rem;
+        row-gap: 3rem;
+    }
+
+    .party-member {
+        margin-bottom: 2rem;
     }
 
     .column-title {
         font-size: 1.5rem;
-        margin-bottom: 2rem;
-    }
-
-    .party-member {
         margin-bottom: 2rem;
     }
 
@@ -2381,6 +2475,10 @@ body.travel-page .footer {
     animation-delay: 0.52s;
 }
 
+.travel-container > .travel-reveal:nth-child(6) {
+    animation-delay: 0.64s;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .travel-reveal {
         animation: none;
@@ -2579,6 +2677,15 @@ body.travel-page .footer {
     text-align: center;
 }
 
+.travel-book-note {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: #7a7268;
+    margin: 0.85rem auto 0;
+    max-width: 28rem;
+}
+
 .travel-btn {
     display: inline-flex;
     align-items: center;
@@ -2626,6 +2733,18 @@ body.travel-page .footer {
     max-width: 30rem;
     margin-left: auto;
     margin-right: auto;
+}
+
+.travel-more-hotels a {
+    color: var(--travel-accent-deep);
+    text-decoration: underline;
+    text-decoration-color: rgba(94, 77, 58, 0.35);
+    text-underline-offset: 0.15em;
+}
+
+.travel-more-hotels a:hover {
+    color: var(--travel-accent);
+    text-decoration-color: currentColor;
 }
 
 .travel-local {
