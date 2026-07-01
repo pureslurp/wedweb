@@ -192,6 +192,38 @@ body {
     font-style: italic;
 }
 
+/* Hero RSVP call-to-action */
+.hero-cta {
+    margin-top: 2.5rem;
+    display: flex;
+    justify-content: center;
+}
+
+.hero-rsvp-btn {
+    display: inline-block;
+    padding: 1rem 3rem;
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: #fff;
+    background-color: #8b7355;
+    border-radius: 50px;
+    text-decoration: none;
+    letter-spacing: 1.5px;
+    font-family: 'Georgia', serif;
+    box-shadow: 0 4px 12px rgba(139, 115, 85, 0.3);
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+}
+
+.hero-rsvp-btn:hover {
+    background-color: #6f5a43;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(139, 115, 85, 0.4);
+}
+
+.hero-rsvp-btn:active {
+    transform: translateY(0);
+}
+
 /* When you add an actual photo, use this style */
 .photo-placeholder img {
     width: 100%;
@@ -511,6 +543,11 @@ body {
 
     .hero-section {
         padding: 2rem 1rem;
+    }
+
+    .hero-rsvp-btn {
+        padding: 0.9rem 2.5rem;
+        font-size: 1.05rem;
     }
 }
 
