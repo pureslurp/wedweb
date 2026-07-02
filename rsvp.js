@@ -1205,6 +1205,8 @@ async function performRsvpSubmit() {
         var isAnyoneAttending = false;
         lastSubmittedAttendingGuestIds = [];
 
+        var submittedGuestIds = [];
+
         for (var i = 0; i < blocks.length; i++) {
             var block = blocks[i];
             var rsvpEl = block.querySelector('.rsvp-guest-response');
@@ -1217,6 +1219,7 @@ async function performRsvpSubmit() {
             var dietaryNotes = dietaryEl && dietaryEl.value.trim() ? dietaryEl.value.trim() : null;
             var generalNotes = generalEl && generalEl.value.trim() ? generalEl.value.trim() : null;
             var guestId = block.dataset.guestId;
+            submittedGuestIds.push(String(guestId));
 
             if (rsvpResponse === 'yes') {
                 isAnyoneAttending = true;
@@ -1262,6 +1265,19 @@ async function performRsvpSubmit() {
                 if (res.error) {
                     throw res.error;
                 }
+            }
+        }
+
+        if (!USE_MOCK_DATA && updateClient && submittedGuestIds.length > 0) {
+            try {
+                var notifyRes = await updateClient.functions.invoke('notify-rsvp-owner', {
+                    body: { guest_ids: submittedGuestIds }
+                });
+                if (notifyRes.error) {
+                    console.error('Owner RSVP notification failed:', notifyRes.error);
+                }
+            } catch (notifyErr) {
+                console.error('Owner RSVP notification failed:', notifyErr);
             }
         }
 

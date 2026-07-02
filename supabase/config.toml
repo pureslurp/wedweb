@@ -3,3 +3,6 @@
 
 [functions.send-rsvp-confirmation]
 verify_jwt = false
+
+[functions.notify-rsvp-owner]
+verify_jwt = false
