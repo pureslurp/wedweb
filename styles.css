@@ -3202,3 +3202,334 @@ body.travel-page .footer {
         font-size: 1rem;
     }
 }
+
+/* RSVP Board (private) */
+.board-header {
+    background-color: #fff;
+    border-bottom: 1px solid rgba(139, 115, 85, 0.2);
+    padding: 1rem 1.5rem;
+}
+
+.board-header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.board-header-label {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 0.95rem;
+    color: #8b7355;
+    letter-spacing: 0.04em;
+}
+
+.board-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+}
+
+.board-gate {
+    display: flex;
+    justify-content: center;
+    padding: 3rem 0;
+}
+
+.board-gate[hidden],
+.board-content[hidden] {
+    display: none !important;
+}
+
+.board-gate-card {
+    width: 100%;
+    max-width: 420px;
+}
+
+.board-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.board-page-title {
+    margin-bottom: 0;
+}
+
+.board-toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1rem;
+}
+
+.board-last-updated {
+    font-size: 0.9rem;
+    color: #6a6a6a;
+}
+
+.board-refresh-btn {
+    width: auto;
+    padding: 0.65rem 1.25rem;
+    margin: 0;
+}
+
+.board-summary {
+    margin-bottom: 1.75rem;
+}
+
+.board-breakdown {
+    background: #fff;
+    border: 1px solid rgba(139, 115, 85, 0.22);
+    padding: 1.1rem 1.15rem 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.board-breakdown-heading {
+    margin-bottom: 0.65rem;
+}
+
+.board-breakdown-total {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 0.95rem;
+    color: #5a5a5a;
+}
+
+.board-breakdown-bar {
+    display: flex;
+    width: 100%;
+    height: 1.35rem;
+    overflow: hidden;
+    background: #f0ebe4;
+    border: 1px solid rgba(139, 115, 85, 0.18);
+}
+
+.board-breakdown-seg {
+    display: block;
+    height: 100%;
+    min-width: 0;
+    transition: width 0.25s ease;
+}
+
+.board-breakdown-seg[hidden] {
+    display: none !important;
+}
+
+.board-seg-yes {
+    background: #6f8f6f;
+}
+
+.board-seg-no {
+    background: #b07a7a;
+}
+
+.board-seg-pending {
+    background: #c4b48a;
+}
+
+.board-seg-chicken {
+    background: #8b7355;
+}
+
+.board-seg-beef {
+    background: #5e4d3a;
+}
+
+.board-seg-vegetarian {
+    background: #7a8f6a;
+}
+
+.board-breakdown-legend {
+    list-style: none;
+    margin: 0.85rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem 1.35rem;
+}
+
+.board-breakdown-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.92rem;
+    color: #4a4a4a;
+}
+
+.board-breakdown-swatch {
+    width: 0.75rem;
+    height: 0.75rem;
+    flex-shrink: 0;
+}
+
+.board-breakdown-legend-text strong {
+    font-weight: 600;
+    color: #2c2824;
+}
+
+.board-breakdown-pct {
+    color: #6a6a6a;
+    margin-left: 0.15rem;
+}
+
+.board-secondary-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.board-stat {
+    background: #fff;
+    border: 1px solid rgba(139, 115, 85, 0.22);
+    padding: 0.9rem 0.75rem;
+    text-align: center;
+}
+
+.board-stat-value {
+    display: block;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: 1.75rem;
+    color: #8b7355;
+    line-height: 1.1;
+}
+
+.board-stat-label {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #6a6a6a;
+}
+
+.board-controls {
+    display: grid;
+    grid-template-columns: minmax(10rem, 1.4fr) repeat(4, minmax(7rem, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+    align-items: end;
+}
+
+.board-controls .form-group {
+    margin-bottom: 0;
+}
+
+.board-result-count {
+    font-size: 0.9rem;
+    color: #6a6a6a;
+    margin: 0 0 0.75rem;
+}
+
+.board-table-wrap {
+    overflow-x: auto;
+    background: #fff;
+    border: 1px solid rgba(139, 115, 85, 0.22);
+}
+
+.board-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+    min-width: 900px;
+}
+
+.board-table th,
+.board-table td {
+    padding: 0.7rem 0.85rem;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid rgba(139, 115, 85, 0.14);
+}
+
+.board-table th {
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 600;
+    font-size: 0.8rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #5a5a5a;
+    background: #f3ede6;
+    white-space: nowrap;
+}
+
+.board-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.board-empty {
+    text-align: center;
+    color: #6a6a6a;
+    padding: 2rem 1rem !important;
+}
+
+.board-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.8rem;
+    letter-spacing: 0.03em;
+    text-transform: capitalize;
+    border: 1px solid transparent;
+}
+
+.board-badge-yes {
+    color: #3d5a3d;
+    background: #e8f0e8;
+    border-color: rgba(61, 90, 61, 0.2);
+}
+
+.board-badge-no {
+    color: #6a3d3d;
+    background: #f5e8e8;
+    border-color: rgba(106, 61, 61, 0.2);
+}
+
+.board-badge-pending {
+    color: #6a5a3d;
+    background: #f5f0e0;
+    border-color: rgba(106, 90, 61, 0.2);
+}
+
+@media (max-width: 900px) {
+    .board-controls {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .board-search-group {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 768px) {
+    .board-controls {
+        grid-template-columns: 1fr;
+    }
+
+    .board-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .board-toolbar-actions {
+        justify-content: space-between;
+    }
+}
+
+@media (max-width: 480px) {
+    .board-section {
+        padding: 1.5rem 1rem 3rem;
+    }
+
+    .board-stat-value {
+        font-size: 1.5rem;
+    }
+
+    .board-breakdown-legend {
+        flex-direction: column;
+        gap: 0.45rem;
+    }
+}
