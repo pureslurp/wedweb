@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS guests (
     shuttle_offered BOOLEAN NOT NULL DEFAULT false,
     shuttle_rsvp TEXT CHECK (shuttle_rsvp IS NULL OR shuttle_rsvp IN ('yes', 'no')),
     marriott_stay TEXT CHECK (marriott_stay IS NULL OR marriott_stay IN ('yes', 'no')),
+    table_number INTEGER,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
@@ -31,6 +32,9 @@ CREATE INDEX idx_guests_nickname ON guests(nickname) WHERE nickname IS NOT NULL 
 
 -- Same label on each row = one invitation (e.g. "Smith Family"); used to show everyone on lookup
 CREATE INDEX idx_guests_family ON guests(family) WHERE family IS NOT NULL;
+
+-- Seating chart table assignments (nullable until assigned)
+CREATE INDEX idx_guests_table_number ON guests(table_number) WHERE table_number IS NOT NULL;
 
 -- Create a function to automatically update the updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()

@@ -3533,3 +3533,300 @@ body.travel-page .footer {
         gap: 0.45rem;
     }
 }
+
+/* Seating Chart (guest-facing, unlisted) */
+.seating-page {
+    --seating-ink: #2c2824;
+    --seating-muted: #5c5349;
+    --seating-accent: #8b7355;
+    --seating-accent-deep: #5e4d3a;
+    --seating-paper: #f7f3ec;
+    --seating-cream: #faf7f2;
+    --seating-line: rgba(139, 115, 85, 0.2);
+    min-height: 100vh;
+    background:
+        radial-gradient(ellipse 90% 55% at 50% -10%, rgba(139, 115, 85, 0.12), transparent 55%),
+        linear-gradient(180deg, #faf7f2 0%, #f3ebe1 48%, #efe6db 100%);
+    color: var(--seating-ink);
+}
+
+.seating-page::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    z-index: 0;
+}
+
+.seating-header,
+.seating-section {
+    position: relative;
+    z-index: 1;
+}
+
+.seating-header {
+    background-color: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--seating-line);
+    padding: 1rem 1.5rem;
+}
+
+.seating-header-inner {
+    max-width: 640px;
+    margin: 0 auto;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.seating-header-label {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 0.95rem;
+    color: var(--seating-accent);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.seating-section {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 2.25rem 1.25rem 4rem;
+}
+
+.seating-hero {
+    text-align: center;
+    margin-bottom: 1.75rem;
+    animation: seating-fade-up 0.7s ease both;
+}
+
+.seating-title {
+    font-family: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+    font-weight: 500;
+    font-size: clamp(2.4rem, 8vw, 3.4rem);
+    line-height: 1.05;
+    letter-spacing: 0.02em;
+    color: var(--seating-ink);
+    margin: 0 0 0.55rem;
+}
+
+.seating-subtitle {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.05rem;
+    line-height: 1.5;
+    color: var(--seating-muted);
+    margin: 0 0 1.6rem;
+}
+
+.seating-search-wrap {
+    position: relative;
+}
+
+.seating-search {
+    width: 100%;
+    box-sizing: border-box;
+    appearance: none;
+    -webkit-appearance: none;
+    border: 1px solid rgba(139, 115, 85, 0.32);
+    background: rgba(255, 255, 255, 0.88);
+    color: var(--seating-ink);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.15rem;
+    line-height: 1.3;
+    padding: 1.05rem 1.15rem;
+    border-radius: 2px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.seating-search::placeholder {
+    color: rgba(92, 83, 73, 0.55);
+}
+
+.seating-search:focus {
+    border-color: var(--seating-accent);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(139, 115, 85, 0.16);
+}
+
+.seating-status {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 0.92rem;
+    color: var(--seating-muted);
+    letter-spacing: 0.02em;
+    margin: 0 0 0.9rem;
+    min-height: 1.3em;
+    animation: seating-fade-up 0.55s ease 0.1s both;
+}
+
+.seating-status[hidden],
+.seating-error[hidden],
+.seating-results[hidden] {
+    display: none !important;
+}
+
+.seating-error {
+    margin-bottom: 1rem;
+}
+
+.seating-results {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.seating-letter {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    margin: 1.35rem 0 0.35rem;
+    padding: 0 0.15rem 0.45rem;
+    border-bottom: 1px solid var(--seating-line);
+}
+
+.seating-letter:first-child {
+    margin-top: 0.25rem;
+}
+
+.seating-letter-mark {
+    font-family: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+    font-size: 1.55rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    color: var(--seating-accent);
+}
+
+.seating-row {
+    padding: 1.05rem 0.15rem;
+    border-bottom: 1px solid var(--seating-line);
+    animation: seating-fade-up 0.45s ease both;
+    animation-delay: calc(0.03s * var(--seating-i, 0));
+}
+
+.seating-row--with {
+    padding-bottom: 1.25rem;
+}
+
+.seating-row-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.seating-row-name {
+    display: block;
+    font-family: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+    font-size: clamp(1.25rem, 4.5vw, 1.55rem);
+    font-weight: 500;
+    line-height: 1.25;
+    color: var(--seating-ink);
+    text-align: left;
+    min-width: 0;
+    flex: 1;
+}
+
+.seating-companions {
+    margin-top: 0.85rem;
+    padding: 0.85rem 0.95rem 0.95rem;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid var(--seating-line);
+}
+
+.seating-companions-label {
+    margin: 0 0 0.55rem;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--seating-accent);
+}
+
+.seating-companions-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.seating-companions-item {
+    font-family: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+    font-size: 1.15rem;
+    font-weight: 500;
+    line-height: 1.35;
+    color: var(--seating-ink);
+    padding: 0.28rem 0;
+    border-top: 1px solid rgba(139, 115, 85, 0.12);
+}
+
+.seating-companions-item:first-child {
+    border-top: none;
+    padding-top: 0;
+}
+
+.seating-row-table {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    flex-shrink: 0;
+    min-width: 4.25rem;
+    text-align: right;
+}
+
+.seating-row-table-label {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--seating-accent);
+    margin-bottom: 0.1rem;
+}
+
+.seating-row-table-num {
+    font-family: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+    font-size: clamp(1.85rem, 6vw, 2.35rem);
+    font-weight: 600;
+    line-height: 1;
+    color: var(--seating-accent-deep);
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+@keyframes seating-fade-up {
+    from {
+        opacity: 0;
+        transform: translateY(0.55rem);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 480px) {
+    .seating-section {
+        padding: 1.75rem 1rem 3.5rem;
+    }
+
+    .seating-search {
+        font-size: 1.05rem;
+        padding: 0.95rem 1rem;
+    }
+
+    .seating-row {
+        padding: 0.95rem 0;
+    }
+}

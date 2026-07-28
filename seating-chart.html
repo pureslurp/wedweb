@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Seating Chart | Savannah & Sean</title>
+
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💚</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+</head>
+<body class="seating-page">
+    <header class="seating-header">
+        <div class="seating-header-inner">
+            <div class="nav-brand">Savannah & Sean</div>
+            <span class="seating-header-label">Seating</span>
+        </div>
+    </header>
+
+    <main class="seating-section">
+        <div class="seating-hero">
+            <h1 class="seating-title">Find Your Table</h1>
+            <p class="seating-subtitle">Search your name to see where you’re seated.</p>
+
+            <div class="seating-search-wrap">
+                <label for="seatingSearch" class="visually-hidden">Search by name</label>
+                <input
+                    type="search"
+                    id="seatingSearch"
+                    class="seating-search"
+                    placeholder="Type your name…"
+                    autocomplete="off"
+                    autocorrect="off"
+                    spellcheck="false"
+                    enterkeyhint="search"
+                    autofocus
+                >
+            </div>
+        </div>
+
+        <div id="seatingStatus" class="seating-status" aria-live="polite">Loading seating…</div>
+        <div id="seatingError" class="error-message seating-error" hidden></div>
+
+        <ul id="seatingResults" class="seating-results" hidden></ul>
+    </main>
+
+    <script src="seating-chart.js"></script>
+</body>
+</html>
