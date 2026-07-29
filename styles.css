@@ -471,6 +471,18 @@ body {
     color: var(--schedule-muted);
 }
 
+.day-schedule-shuttle {
+    margin: 0 0 clamp(1.5rem, 4vw, 2rem);
+    max-width: 28rem;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 0.88rem;
+    line-height: 1.65;
+    color: var(--schedule-muted);
+}
+
 @media (prefers-reduced-motion: reduce) {
     .day-schedule-stop,
     .day-schedule-dress {
