@@ -242,6 +242,7 @@ body {
     --schedule-line: rgba(139, 115, 85, 0.24);
 
     position: relative;
+    scroll-margin-top: 5rem;
     padding: clamp(2.5rem, 7vw, 4rem) clamp(1.25rem, 5vw, 2rem) clamp(3rem, 8vw, 4.5rem);
     background:
         radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255, 255, 255, 0.7) 0%, transparent 60%),
