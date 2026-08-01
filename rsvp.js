@@ -438,7 +438,7 @@ if (nameLookupForm) {
     
     const { firstName, lastName } = parseFullName(fullName);
     if (!firstName || !lastName) {
-        errorMessage.textContent = 'Please enter your first and last name (e.g. Jane Doe or Sagi Ortega).';
+        errorMessage.textContent = 'Please enter your first and last name (e.g. Jane Doe).';
         errorMessage.style.display = 'block';
         return;
     }
