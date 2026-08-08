@@ -26,6 +26,11 @@
     var lastUpdatedEl = document.getElementById('boardLastUpdated');
     var resultCountEl = document.getElementById('boardResultCount');
     var tableBody = document.getElementById('boardTableBody');
+    var sortButtons = document.querySelectorAll('.board-sort-btn');
+
+    // Default: pending first, then name. Clicking a header switches to that column.
+    var sortKey = 'default';
+    var sortDir = 'asc';
 
     function escapeHtml(str) {
         if (str == null) return '';
@@ -96,23 +101,121 @@
         return String(value);
     }
 
-    function sortGuests(list) {
-        return list.slice().sort(function (a, b) {
+    function compareByName(a, b) {
+        var la = (a.last_name || '').toLowerCase();
+        var lb = (b.last_name || '').toLowerCase();
+        if (la < lb) return -1;
+        if (la > lb) return 1;
+        var fa = (a.first_name || '').toLowerCase();
+        var fb = (b.first_name || '').toLowerCase();
+        if (fa < fb) return -1;
+        if (fa > fb) return 1;
+        return 0;
+    }
+
+    function updatedAtMs(guest) {
+        if (!guest.updated_at) return 0;
+        var t = new Date(guest.updated_at).getTime();
+        return isNaN(t) ? 0 : t;
+    }
+
+    function textSortValue(value) {
+        if (value == null || value === '') return '';
+        return String(value).toLowerCase();
+    }
+
+    function compareText(aVal, bVal) {
+        var aEmpty = !aVal;
+        var bEmpty = !bVal;
+        if (aEmpty && bEmpty) return 0;
+        if (aEmpty) return 1;
+        if (bEmpty) return -1;
+        if (aVal < bVal) return -1;
+        if (aVal > bVal) return 1;
+        return 0;
+    }
+
+    function compareGuests(a, b) {
+        var result = 0;
+
+        if (sortKey === 'default') {
             var sa = rsvpStatus(a);
             var sb = rsvpStatus(b);
             var pa = sa === 'pending' ? 0 : 1;
             var pb = sb === 'pending' ? 0 : 1;
             if (pa !== pb) return pa - pb;
-            var la = (a.last_name || '').toLowerCase();
-            var lb = (b.last_name || '').toLowerCase();
-            if (la < lb) return -1;
-            if (la > lb) return 1;
-            var fa = (a.first_name || '').toLowerCase();
-            var fb = (b.first_name || '').toLowerCase();
-            if (fa < fb) return -1;
-            if (fa > fb) return 1;
-            return 0;
-        });
+            return compareByName(a, b);
+        }
+
+        if (sortKey === 'name') {
+            result = compareByName(a, b);
+        } else if (sortKey === 'family') {
+            result = compareText(textSortValue(a.family), textSortValue(b.family));
+        } else if (sortKey === 'rsvp') {
+            result = compareText(rsvpStatus(a), rsvpStatus(b));
+        } else if (sortKey === 'meal') {
+            result = compareText(
+                textSortValue(a.meal_choice),
+                textSortValue(b.meal_choice)
+            );
+        } else if (sortKey === 'marriott') {
+            result = compareText(
+                textSortValue(a.marriott_stay),
+                textSortValue(b.marriott_stay)
+            );
+        } else if (sortKey === 'shuttle') {
+            result = compareText(
+                textSortValue(a.shuttle_rsvp),
+                textSortValue(b.shuttle_rsvp)
+            );
+        } else if (sortKey === 'dietary') {
+            result = compareText(
+                textSortValue(a.dietary_notes),
+                textSortValue(b.dietary_notes)
+            );
+        } else if (sortKey === 'notes') {
+            result = compareText(
+                textSortValue(a.general_notes),
+                textSortValue(b.general_notes)
+            );
+        } else if (sortKey === 'updated') {
+            result = updatedAtMs(a) - updatedAtMs(b);
+        }
+
+        if (result === 0) {
+            result = compareByName(a, b);
+        }
+
+        return sortDir === 'desc' ? -result : result;
+    }
+
+    function sortGuests(list) {
+        return list.slice().sort(compareGuests);
+    }
+
+    function updateSortHeaders() {
+        for (var i = 0; i < sortButtons.length; i++) {
+            var btn = sortButtons[i];
+            var key = btn.getAttribute('data-sort');
+            var indicator = btn.querySelector('.board-sort-indicator');
+            var active = sortKey === key;
+            btn.classList.toggle('is-active', active);
+            btn.setAttribute('aria-sort', active ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none');
+            if (indicator) {
+                indicator.textContent = active ? (sortDir === 'asc' ? '↑' : '↓') : '';
+            }
+        }
+    }
+
+    function setSort(key) {
+        if (sortKey === key) {
+            sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+            sortKey = key;
+            sortDir = key === 'updated' ? 'desc' : 'asc';
+        }
+        updateSortHeaders();
+        renderTable();
     }
 
     function computeSummary(list) {
@@ -455,6 +558,11 @@
     filterMarriott.addEventListener('change', renderTable);
     filterShuttle.addEventListener('change', renderTable);
     filterMeal.addEventListener('change', renderTable);
+    for (var i = 0; i < sortButtons.length; i++) {
+        sortButtons[i].addEventListener('click', function () {
+            setSort(this.getAttribute('data-sort'));
+        });
+    }
     refreshBtn.addEventListener('click', function () {
         fetchGuests();
     });

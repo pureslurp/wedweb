@@ -3468,6 +3468,40 @@ body.travel-page .footer {
     color: #5a5a5a;
     background: #f3ede6;
     white-space: nowrap;
+    padding: 0;
+}
+
+.board-sort-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    width: 100%;
+    margin: 0;
+    padding: 0.7rem 0.85rem;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.board-sort-btn:hover,
+.board-sort-btn:focus-visible {
+    color: #8b7355;
+    outline: none;
+}
+
+.board-sort-btn.is-active {
+    color: #5e4d3a;
+}
+
+.board-sort-indicator {
+    min-width: 0.75em;
+    font-size: 0.85em;
+    line-height: 1;
 }
 
 .board-table tbody tr:last-child td {
