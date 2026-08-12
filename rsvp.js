@@ -840,8 +840,20 @@ function openRsvpStatusForSelectedGuests() {
     document.getElementById('successSection').style.display = 'none';
 }
 
+function weddingStepAllDeclining() {
+    var root = getWeddingBlocksRoot();
+    if (!root) return false;
+    var selects = root.querySelectorAll('.rsvp-guest-response');
+    if (!selects.length) return false;
+    for (var i = 0; i < selects.length; i++) {
+        if (selects[i].value !== 'no') return false;
+    }
+    return true;
+}
+
 function countTotalWizardSteps() {
-    return 2;
+    // Declining guests skip the hotel/shuttle step.
+    return weddingStepAllDeclining() ? 1 : 2;
 }
 
 function wizardStepLabel(activeIndex, total) {
@@ -878,8 +890,10 @@ function updateWeddingNavButtons() {
     var nextBtn = document.getElementById('rsvpWeddingNextBtn');
     var subBtn = document.getElementById('rsvpWeddingSubmitBtn');
     if (!nextBtn || !subBtn) return;
-    nextBtn.style.display = 'block';
-    subBtn.style.display = 'none';
+    var canSubmitHere = weddingStepAllDeclining();
+    nextBtn.style.display = canSubmitHere ? 'none' : 'block';
+    subBtn.style.display = canSubmitHere ? 'block' : 'none';
+    updateWizardIndicatorText('wedding');
 }
 
 function updateMarriottShuttleFollowup(rowEl) {
@@ -1435,6 +1449,11 @@ wireIfPresent('rsvpWeddingNextBtn', async function () {
     if (!validateWeddingStep()) return;
     buildHotelShuttleStepHtml();
     setActiveWizardStep('shuttle');
+});
+
+wireIfPresent('rsvpWeddingSubmitBtn', async function () {
+    if (!validateWeddingStep()) return;
+    await performRsvpSubmit();
 });
 
 wireIfPresent('rsvpShuttleSubmitBtn', async function () {
