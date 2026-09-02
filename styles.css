@@ -164,9 +164,20 @@ body {
 /* Photo Container */
 .photo-container {
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     margin-top: 3rem;
+}
+
+.hero-verse {
+    margin: 1.1rem 0 0;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: 1.1rem;
+    font-weight: 400;
+    font-style: italic;
+    color: #8b7355;
+    letter-spacing: 2px;
 }
 
 .photo-placeholder {
@@ -3838,6 +3849,17 @@ body.travel-page .footer {
     font-weight: 600;
     line-height: 1;
     color: var(--seating-accent-deep);
+}
+
+.seating-row-table--named {
+    min-width: 5.5rem;
+    max-width: 7rem;
+}
+
+.seating-row-table--named .seating-row-table-num {
+    font-size: clamp(1.15rem, 4vw, 1.45rem);
+    line-height: 1.15;
+    letter-spacing: 0.02em;
 }
 
 .visually-hidden {
