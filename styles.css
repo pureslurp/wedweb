@@ -3856,17 +3856,6 @@ body.travel-page .footer {
     color: var(--seating-accent-deep);
 }
 
-.seating-row-table--named {
-    min-width: 5.5rem;
-    max-width: 7rem;
-}
-
-.seating-row-table--named .seating-row-table-num {
-    font-size: clamp(1.15rem, 4vw, 1.45rem);
-    line-height: 1.15;
-    letter-spacing: 0.02em;
-}
-
 .visually-hidden {
     position: absolute;
     width: 1px;

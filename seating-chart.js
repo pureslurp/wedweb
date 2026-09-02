@@ -35,16 +35,22 @@
     }
 
     function displayName(guest) {
-        var parts = [guest.first_name, guest.last_name].filter(Boolean);
-        var name = parts.join(' ');
-        if (guest.nickname) {
-            name += ' (“' + guest.nickname + '”)';
-        }
-        return name;
+        return [guest.first_name, guest.last_name].filter(Boolean).join(' ');
     }
 
     function companionName(guest) {
         return [guest.first_name, guest.last_name].filter(Boolean).join(' ');
+    }
+
+    function hasSeatingAssignment(guest) {
+        return guest.table_number != null && guest.table_number !== '';
+    }
+
+    function tableGroupKey(guest) {
+        if (guest.table_number != null && guest.table_number !== '') {
+            return String(guest.table_number);
+        }
+        return null;
     }
 
     function sortGuests(list) {
@@ -84,13 +90,10 @@
     }
 
     function tablematesFor(guest) {
+        var key = tableGroupKey(guest);
+        if (!key) return [];
         return guests.filter(function (g) {
-            return (
-                g !== guest &&
-                g.table_number != null &&
-                guest.table_number != null &&
-                String(g.table_number) === String(guest.table_number)
-            );
+            return g !== guest && tableGroupKey(g) === key;
         });
     }
 
@@ -124,10 +127,7 @@
         var sameTable =
             rows.length > 0 &&
             rows.every(function (g) {
-                return (
-                    g.table_number != null &&
-                    String(g.table_number) === String(rows[0].table_number)
-                );
+                return tableGroupKey(g) === tableGroupKey(rows[0]);
             });
         var showCompanions =
             query.length >= 3 || (query.length > 0 && sameTable);
@@ -237,9 +237,7 @@
         }
 
         guests = sortGuests(
-            (result.data || []).filter(function (g) {
-                return g.table_number != null && g.table_number !== '';
-            })
+            (result.data || []).filter(hasSeatingAssignment)
         );
         renderResults();
     }
