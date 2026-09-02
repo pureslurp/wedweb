@@ -127,7 +127,7 @@ body {
 .hero-section {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 4rem 2rem;
+    padding: 4rem 2rem 0;
     text-align: center;
 }
 
@@ -171,7 +171,8 @@ body {
 }
 
 .hero-verse {
-    margin: 1.1rem 0 0;
+    margin-block: 2.55rem;
+    margin-inline: 0;
     font-family: "Cormorant Garamond", Georgia, serif;
     font-size: 1.1rem;
     font-weight: 400;
@@ -613,7 +614,11 @@ body {
     }
 
     .hero-section {
-        padding: 2rem 1rem;
+        padding: 2rem 1rem 0;
+    }
+
+    .hero-verse {
+        margin-block: 1.55rem;
     }
 
     .hero-rsvp-btn {
